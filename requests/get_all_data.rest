@@ -1,0 +1,11 @@
+GET http://localhost:3001/api/data
+###
+DELETE  http://localhost:3001/api/data/1
+###
+POST http://localhost:3001/api/data
+Content-type: application/json
+
+{
+  "name": "Item 4",
+  "description": "My new item"
+}
