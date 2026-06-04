@@ -1,3 +1,10 @@
+.favourite-item {
+  color: rgb(187, 74, 74);
+  padding-top: 5px;
+  font-size: 15px;
+}
+
+
 .counter {
   font-size: 16px;
   padding: 5px 10px;

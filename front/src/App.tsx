@@ -1,13 +1,11 @@
-import { useEffect, useState, ChangeEvent, SyntheticEvent } from 'react'
+import { useEffect, useState, type ChangeEvent, type SyntheticEvent } from 'react'
 import './App.css'
-import axios from 'axios'
+import Footer from './components/Footer'
+import myWineService from './services/myWines'
 //import Note from './components/Note'
 
 // TODO aDD to favourotes list (wine) after search... changing importannce  2
 // TODO revent the user from being able to add same wine multiple
-
-
-const baseUrl = 'http://localhost:3001/api/data'
 
 type Item = {
   id: number
@@ -24,19 +22,17 @@ const App = () => {
 
 
 
-
   // useEffect: runs after the first render to perform side-effects.
   // Here it fetches the items from the backend API and sets state.
   // Runs once because the dependency array is empty (`[]`).
   useEffect(() => {
   console.log('effect')
-    axios
-      .get<Item[]>(baseUrl)
-      .then(response => {
-        console.log('promise fulfilled')
-        setItems(response.data)
+    myWineService.getAll()
+      .then(initialItems => {
+        setItems(initialItems)
       })
-      .catch(() => setError('Unable to load items'))          
+      .catch(() => setError('Unable to load items')) 
+      console.error('Error loading item')         
   }, [])
 // console.log('render', items.length, 'items')
 
@@ -64,6 +60,7 @@ const App = () => {
         )
       })
 
+
   const addItem = (event: SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault()
     console.log('button clicked', event.target)
@@ -72,28 +69,35 @@ const App = () => {
       name: name,
       description: description,
     }
-    //creates a new copy of the array with the new item added to the end
-    setItems(items.concat(newItemObject)) 
-     setName('')  
-     setDescription('')
-
-     axios
-      .post(baseUrl, newItemObject)
-      .then(response => {
-        console.log('item added', response)
+     myWineService
+     .create(newItemObject)
+      .then(returnedItem => {
+        console.log('item added', returnedItem)
+        setItems(prev => prev.concat(returnedItem))     //creates a new copy of the array with the new item added to the end
+        setName('')  
+        setDescription('') 
   })
+      .catch(() => {
+        setError('Error adding item')
+         console.error('Error adding item')
+    })
   }
   
-  // const deleteItem = async (id: number) => {
-  //   setError('')
-  //   try {
-  //     await axios.delete(`${baseUrl}/${id}`)
-  //     setItems(prev => prev.filter(item => item.id !== id))
-  //   } catch {
-  //     setError('Error deleting item')
-  //   }
-  // }
 
+const deleteItem = (id: number) => {
+  const itemToDelete = items.find(item => item.id === id)
+  console.log('delete item with id', id, itemToDelete)
+
+  myWineService
+    .deleteItem(id)
+    .then(() => {
+      console.log('item deleted', id)
+      setItems(prev => prev.filter(item => item.id !== id))
+    })
+    .catch(() => {
+      setError('Error deleting item')
+    })
+}
 //   const toggleImportanceOf = id => {
 //   const url = `http://localhost:3001/notes/${id}`
 //   const note = notes.find(n => n.id === id)
@@ -141,9 +145,10 @@ const App = () => {
       <h2>My favourites</h2>
       <ul>
         {items.map(item => (
-          <li key={item.id}>
+          <li className="favourite-item"
+          key={item.id}>
             <strong>{item.name}</strong>: {item.description}{' '}
-            {/* <button onClick={() => deleteItem(item.id)}>Delete</button> */}
+           <button onClick={() => deleteItem(item.id)}>Delete</button>
           </li>
         ))}
       </ul>
@@ -170,7 +175,8 @@ const App = () => {
         </div>
         <button type="submit">Save</button>
       </form> 
-
+           <br />
+        <Footer/>
     </div>
   )
 }
