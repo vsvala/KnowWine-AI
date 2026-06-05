@@ -5,17 +5,13 @@ const express = require ('express')
 
 app.use(cors());
 app.use(express.json())//for parsing application/json POST requests
-app.use(express.static('dist'))//for serving the frontend build files
+app.use(express.static('dist'))
 
 let testdata = [
     { id: 1, name: 'Item 1', description: 'This is item 1' },
     { id: 2, name: 'Item 2', description: 'This is item 2' },
     { id: 3, name: 'Item 3', description: 'This is item 3' },
 ];
-//utes to the application.
-app.get('/', (req, res) => {
-  res.send('Hello from the backend!');
-});
 app.get('/api/data', (req, res) => {
    res.json(testdata)
 });
@@ -72,6 +68,11 @@ app.post('/api/data', (req, res) => {
 
   testdata = testdata.concat(item);
   res.status(201).json(item);
+})
+
+const path = require('path')
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'))
 })
 
 const PORT = process.env.PORT || 3001
