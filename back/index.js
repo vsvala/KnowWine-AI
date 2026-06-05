@@ -15,7 +15,8 @@ let testdata = [
 
 const path = require('path')
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'dist/dist', 'index.html'))
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'))
+  console.log('Serving index.html from backend:', path.join(__dirname, 'dist', 'index.html'))
 })
 
 
