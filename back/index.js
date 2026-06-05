@@ -5,6 +5,7 @@ const express = require ('express')
 
 app.use(cors());
 app.use(express.json())//for parsing application/json POST requests
+app.use(express.static('dist'))//for serving the frontend build files
 
 let testdata = [
     { id: 1, name: 'Item 1', description: 'This is item 1' },
@@ -73,7 +74,7 @@ app.post('/api/data', (req, res) => {
   res.status(201).json(item);
 })
 
-const PORT = 3001
+const PORT = process.env.PORT || 3001
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`)
 })
