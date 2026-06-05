@@ -1,11 +1,12 @@
 const express = require ('express')
  const cors =require('cors')
+ const path = require('path')
 
  const app = express();
 
 app.use(cors());
 app.use(express.json())//for parsing application/json POST requests
-app.use(express.static('dist'))
+app.use(express.static(path.join(__dirname, 'dist')))
 
 let testdata = [
     { id: 1, name: 'Item 1', description: 'This is item 1' },
@@ -76,6 +77,11 @@ app.post('/api/data', (req, res) => {
 
   testdata = testdata.concat(item);
   res.status(201).json(item);
+})
+
+// fallback route for client-side routing
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'))
 })
 
 const PORT = process.env.PORT || 3001
