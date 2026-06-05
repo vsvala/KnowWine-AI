@@ -19,7 +19,6 @@ app.get('/', (req, res) => {
   console.log('Serving index.html from backend:', path.join(__dirname, 'dist', 'index.html'))
 })
 
-
 app.get('/api/data', (req, res) => {
    res.json(testdata)
 });
@@ -78,10 +77,6 @@ app.post('/api/data', (req, res) => {
   res.status(201).json(item);
 })
 
-// fallback route for client-side routing
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'dist', 'index.html'))
-})
 
 const PORT = process.env.PORT || 3001
 app.listen(PORT, () => {
