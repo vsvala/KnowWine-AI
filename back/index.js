@@ -12,6 +12,13 @@ let testdata = [
     { id: 2, name: 'Item 2', description: 'This is item 2' },
     { id: 3, name: 'Item 3', description: 'This is item 3' },
 ];
+
+const path = require('path')
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'))
+})
+
+
 app.get('/api/data', (req, res) => {
    res.json(testdata)
 });
@@ -68,11 +75,6 @@ app.post('/api/data', (req, res) => {
 
   testdata = testdata.concat(item);
   res.status(201).json(item);
-})
-
-const path = require('path')
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'dist', 'index.html'))
 })
 
 const PORT = process.env.PORT || 3001
