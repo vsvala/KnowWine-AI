@@ -21,8 +21,8 @@ const initDb = async () => {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS my_wines (
       id SERIAL PRIMARY KEY,
-      name TEXT NOT NULL UNIQUE,
-      description TEXT NOT NULL,
+      name TEXT NOT NULL UNIQUE CHECK (LENGTH(name) >= 2),
+      description TEXT NOT NULL CHECK (LENGTH(description) >= 5),
       Date TIME
     )
   `)

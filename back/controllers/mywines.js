@@ -4,16 +4,16 @@ const mywineModel = require('../models/mywine')
 
 // Input validation helpers
 const validateName = (name) => {
-  return typeof name === 'string' && name.trim().length > 0 && name.trim().length <= 100
+  return typeof name === 'string' && name.trim().length >= 2 && name.trim().length <= 100
 }
 
 const validateDescription = (desc) => {
-  return typeof desc === 'string' && desc.trim().length > 0 && desc.trim().length <= 1000
+  return typeof desc === 'string' && desc.trim().length >= 10 && desc.trim().length <= 1000
 }
 
 
 router.get('/', async (req, res, next) => {
-  try {
+  try { 
     const result = await mywineModel.getAll()
     res.json(result)
   } catch (error) {
@@ -42,10 +42,10 @@ router.post('/', async (req, res, next) => {
     const { name, description } = req.body
 
     if (!validateName(name)) {
-      return res.status(400).json({ error: 'name must be a non-empty string (max 100 chars)' })
+      return res.status(400).json({ error: 'name must be 2–100 characters' })
     }
     if (!validateDescription(description)) {
-      return res.status(400).json({ error: 'description must be a non-empty string (max 1000 chars)' })
+      return res.status(400).json({ error: 'description must be 5–1000 characters' })
     }
 
     const newResult = await mywineModel.create(req.body)
