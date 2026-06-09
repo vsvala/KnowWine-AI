@@ -3,7 +3,7 @@ import globals from 'globals';
 import { defineConfig } from 'eslint/config';
 //import stylisticJs from '@stylistic/eslint-plugin';
 import prettierPlugin from 'eslint-plugin-prettier';
-import prettierConfig from 'eslint-config-prettier';
+//import prettierConfig from 'eslint-config-prettier';
 
 //npx eslint index.js
 //npm run lint -- --fix
