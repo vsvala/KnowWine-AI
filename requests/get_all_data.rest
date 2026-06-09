@@ -1,8 +1,8 @@
-GET http://localhost:3001/api/data
+GET http://localhost:3001/api/mywines
 ###
-DELETE  http://localhost:3001/api/data/1
+DELETE  http://localhost:3001/api/mywines/1
 ###
-POST http://localhost:3001/api/data
+POST http://localhost:3001/api/mywines
 Content-type: application/json
 
 {

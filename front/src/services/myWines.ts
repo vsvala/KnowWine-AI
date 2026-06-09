@@ -2,8 +2,8 @@
 // to make HTTP requests (GET/POST/PUT/DELETE, etc.) works with server-side code and APIs.
 import axios from 'axios'
 
-const baseUrl = '/api/data'
-//'http://localhost:3001/api/data'
+const baseUrl = '/api/mywines'
+//'http://localhost:3001/api/mywines'
 type ItemInput = {
   name: string
   description: string
