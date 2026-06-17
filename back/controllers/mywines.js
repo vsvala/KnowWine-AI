@@ -1,5 +1,6 @@
 const router = require('express').Router();
 const mywineModel = require('../models/mywine');
+const User = require('../models/user');
 
 // Input validation helpers
 const validateName = (name) => {
@@ -38,7 +39,11 @@ router.get('/:id', async (req, res, next) => {
 router.post('/', async (req, res, next) => {
   try {
     const { name, description } = req.body;
-
+    const body = req.body;
+    const users = await User.getById(body.userId);
+    if (!users || users.length === 0) {
+      return res.status(400).json({ error: 'userId missing or not valid' });
+    }
     if (!validateName(name)) {
       return res.status(400).json({ error: 'name must be 2–100 characters' });
     }
@@ -46,7 +51,7 @@ router.post('/', async (req, res, next) => {
       return res.status(400).json({ error: 'description must be 5–1000 characters' });
     }
 
-    const newResult = await mywineModel.create(req.body);
+    const newResult = await mywineModel.create({ name, description, userId: body.userId });
     res.status(201).json(newResult);
   } catch (error) {
     if (error.code === '23505') {

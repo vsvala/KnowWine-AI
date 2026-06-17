@@ -7,7 +7,7 @@
     "deploy:full": "npm run build:ui && git add . && git commit -m uibuild && git push",
     "start": "NODE_ENV=production node index.js",
     "dev": "NODE_ENV=development node --watch index.js",
-    "test": "NODE_ENV=test node --test",
+    "test": "NODE_ENV=test node --test --test-concurrency=1",
     "lint": "eslint .",
     "format": "prettier . --write",
     "format:check": "prettier . --check"
@@ -17,6 +17,7 @@
   "license": "MIT",
   "description": "KnowWine AI -backend",
   "dependencies": {
+    "bcrypt": "^6.0.0",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",

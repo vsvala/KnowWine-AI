@@ -15,10 +15,10 @@ const errorHandler = (error, req, res, _next) => {
 
   res.status(500).json({ error: 'Internal server error' });
 };
-// Simple rate limiter (max 50 requests per 15 minutes per IP)
+// Simple rate limiter (max 50 req/15min in production, 500 in development)
 const requestCounts = {};
 const RATE_LIMIT_WINDOW = 15 * 60 * 1000; // 15 minutes
-const RATE_LIMIT_MAX = 50;
+const RATE_LIMIT_MAX = process.env.NODE_ENV === 'production' ? 50 : 500;
 
 const rateLimiter = (req, res, next) => {
   const ip = req.ip || req.connection.remoteAddress;
@@ -42,6 +42,7 @@ const rateLimiter = (req, res, next) => {
 };
 
 // Clean up old rate limit entries every 30 minutes
+// .unref() so this timer doesn't prevent the process from exiting (e.g. in tests)
 setInterval(
   () => {
     const now = Date.now();
@@ -52,6 +53,6 @@ setInterval(
     }
   },
   30 * 60 * 1000
-);
+).unref();
 
 module.exports = { unknownEndpoint, errorHandler, rateLimiter };

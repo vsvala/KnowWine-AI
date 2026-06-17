@@ -1,0 +1,24 @@
+[  397835ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=d22f86b0:14337
+[  397912ms] [LOG] effect @ http://localhost:5173/src/App.tsx:20
+[  397918ms] [ERROR] Error loading item @ http://localhost:5173/src/App.tsx:24
+[  397918ms] [LOG] effect @ http://localhost:5173/src/App.tsx:27
+[  397924ms] [ERROR] Error loading users @ http://localhost:5173/src/App.tsx:32
+[  397935ms] [LOG] effect @ http://localhost:5173/src/App.tsx:20
+[  397936ms] [ERROR] Error loading item @ http://localhost:5173/src/App.tsx:24
+[  397936ms] [LOG] effect @ http://localhost:5173/src/App.tsx:27
+[  397938ms] [ERROR] Error loading users @ http://localhost:5173/src/App.tsx:32
+[  398468ms] [LOG] users from API: [Object] @ http://localhost:5173/src/App.tsx:29
+[  398528ms] [LOG] users from API: [Object] @ http://localhost:5173/src/App.tsx:29
+[ 2155670ms] [LOG] [vite] server connection lost. Polling for restart... @ http://localhost:5173/@vite/client:992
+[ 2161273ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=2c407f3a:14337
+[ 2161516ms] [LOG] effect @ http://localhost:5173/src/App.tsx:20
+[ 2161665ms] [ERROR] Error loading item @ http://localhost:5173/src/App.tsx:24
+[ 2161666ms] [LOG] effect @ http://localhost:5173/src/App.tsx:27
+[ 2161668ms] [ERROR] Error loading users @ http://localhost:5173/src/App.tsx:32
+[ 2161672ms] [LOG] effect @ http://localhost:5173/src/App.tsx:20
+[ 2161677ms] [ERROR] Error loading item @ http://localhost:5173/src/App.tsx:24
+[ 2161678ms] [LOG] effect @ http://localhost:5173/src/App.tsx:27
+[ 2161680ms] [ERROR] Error loading users @ http://localhost:5173/src/App.tsx:32
+[ 2162441ms] [LOG] users from API: [Object] @ http://localhost:5173/src/App.tsx:29
+[ 2162510ms] [LOG] users from API: [Object] @ http://localhost:5173/src/App.tsx:29
+[ 5674860ms] [LOG] [vite] server connection lost. Polling for restart... @ http://localhost:5173/@vite/client:992

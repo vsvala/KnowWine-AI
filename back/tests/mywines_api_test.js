@@ -6,16 +6,24 @@ const { pool, connectToDatabase } = require('../utils/db');
 const helper = require('./test_helper');
 
 const api = supertest(app);
-//before() hook that calls connectToDatabase() — this creates the my_wines table before any test runs,
-// since tests import app.js directly and not index.js
+
+let testUserId;
+
 before(async () => {
   await connectToDatabase();
 });
 
 beforeEach(async () => {
   await pool.query('DELETE FROM my_wines');
+  await pool.query('DELETE FROM users');
+
+  const userResult = await pool.query(
+    'INSERT INTO users(name, username, password_hash) VALUES ($1, $2, $3) RETURNING id',
+    ['TestUser', 'testuser', 'hashedpassword']
+  );
+  testUserId = userResult.rows[0].id;
+
   for (const wine of helper.initialWines) {
-    //for...of block, that guarantees a specific execution order
     await pool.query('INSERT INTO my_wines(name, description) VALUES ($1, $2)', [
       wine.name,
       wine.description,
@@ -36,6 +44,7 @@ describe('GET /api/mywines', () => {
     assert.strictEqual(response.body.length, helper.initialWines.length);
   });
 });
+
 describe('GET /api/mywines/:id', () => {
   test('returns a specific wine', async () => {
     const winesAtStart = await helper.winesInDb();
@@ -54,11 +63,13 @@ describe('GET /api/mywines/:id', () => {
     await api.get('/api/mywines/notanumber').expect(400);
   });
 });
+
 describe('POST /api/mywines', () => {
   test('a valid wine can be added', async () => {
     const newWine = {
       name: 'Rioja',
       description: 'A Spanish red wine with oak aging',
+      userId: testUserId,
     };
 
     await api
@@ -73,20 +84,37 @@ describe('POST /api/mywines', () => {
     const names = winesAtEnd.map((w) => w.name);
     assert(names.includes('Rioja'));
   });
+
   test('wine without valid name is rejected', async () => {
-    const newWine = { name: 'X', description: 'A Spanish red wine with oak aging' };
+    const newWine = {
+      name: 'X',
+      description: 'A Spanish red wine with oak aging',
+      userId: testUserId,
+    };
 
     await api.post('/api/mywines').send(newWine).expect(400);
 
     const winesAtEnd = await helper.winesInDb();
     assert.strictEqual(winesAtEnd.length, helper.initialWines.length);
   });
+
   test('duplicate name is rejected', async () => {
-    const duplicate = { name: 'Barolo', description: 'Another description here' };
+    const duplicate = {
+      name: 'Barolo',
+      description: 'Another description here',
+      userId: testUserId,
+    };
 
     await api.post('/api/mywines').send(duplicate).expect(400);
   });
+
+  test('missing userId is rejected', async () => {
+    const newWine = { name: 'Rioja', description: 'A Spanish red wine with oak aging' };
+
+    await api.post('/api/mywines').send(newWine).expect(400);
+  });
 });
+
 describe('DELETE /api/mywines/:id', () => {
   test('a wine can be deleted', async () => {
     const winesAtStart = await helper.winesInDb();
