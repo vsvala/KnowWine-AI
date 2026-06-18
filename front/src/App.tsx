@@ -163,6 +163,10 @@ const App = () => {
     setPassword(e.target.value);
     console.log(password);
   };
+  const handleLogout = () => {
+    window.localStorage.clear();
+    //nav('/')
+  };
 
   const loginForm = () => (
     <div>
@@ -218,6 +222,7 @@ const App = () => {
       {user && (
         <div>
           <p>{user.name} logged in</p>
+          <button onClick={handleLogout}>Log out</button>
         </div>
       )}
 
