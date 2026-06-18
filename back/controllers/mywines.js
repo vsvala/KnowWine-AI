@@ -1,6 +1,15 @@
 const router = require('express').Router();
 const mywineModel = require('../models/mywine');
 const User = require('../models/user');
+const jwt = require('jsonwebtoken');
+
+const getTokenFrom = (request) => {
+  const authorization = request.get('authorization');
+  if (authorization && authorization.startsWith('Bearer ')) {
+    return authorization.replace('Bearer ', '');
+  }
+  return null;
+};
 
 // Input validation helpers
 const validateName = (name) => {
@@ -40,6 +49,17 @@ router.post('/', async (req, res, next) => {
   try {
     const { name, description } = req.body;
     const body = req.body;
+
+    const decodedToken = jwt.verify(getTokenFrom(req), process.env.SECRET);
+    if (!decodedToken.id) {
+      return res.status(401).json({ error: 'token invalid' });
+    }
+    const user = await User.findById(decodedToken.id);
+
+    if (!user) {
+      return res.status(400).json({ error: 'UserId missing or not valid' });
+    }
+
     const users = await User.getById(body.userId);
     if (!users || users.length === 0) {
       return res.status(400).json({ error: 'userId missing or not valid' });

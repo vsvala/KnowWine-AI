@@ -2,7 +2,7 @@ const unknownEndpoint = (req, res) => {
   res.status(404).json({ error: 'unknown endpoint' });
 };
 
-const errorHandler = (error, req, res, _next) => {
+const errorHandler = (error, req, res, next) => {
   console.error(error.message);
 
   if (error instanceof SyntaxError && 'body' in error) {
@@ -13,7 +13,15 @@ const errorHandler = (error, req, res, _next) => {
     return res.status(400).json({ error: 'name must be unique' });
   }
 
-  res.status(500).json({ error: 'Internal server error' });
+  if (error.name === 'JsonWebTokenError') {
+    return res.status(401).json({ error: 'token invalid' });
+  }
+
+  if (error.name === 'TokenExpiredError') {
+    return res.status(401).json({ error: 'token expired' });
+  }
+
+  next(error);
 };
 // Simple rate limiter (max 50 req/15min in production, 500 in development)
 const requestCounts = {};

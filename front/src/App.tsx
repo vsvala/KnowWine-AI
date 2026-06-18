@@ -2,8 +2,11 @@ import { useEffect, useState, type ChangeEvent, type SyntheticEvent } from 'reac
 import './App.css';
 import Footer from './components/Footer';
 import myWineService from './services/myWines';
+import userService from './services/users';
+
 //import Note from './components/Note'
 
+// curl http://localhost:3001/api/users
 // TODO aDD to favourotes list (wine) after search... changing importannce  2
 // TODO revent the user from being able to add same wine multiple
 
@@ -12,9 +15,15 @@ type Item = {
   name: string;
   description: string;
 };
+type User = {
+  id: number;
+  name: string;
+  username: string;
+};
 
 const App = () => {
   const [items, setItems] = useState<Item[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [searched, setSearched] = useState('');
@@ -32,6 +41,18 @@ const App = () => {
       })
       .catch(() => setError('Unable to load items'));
     console.error('Error loading item');
+  }, []);
+
+  useEffect(() => {
+    console.log('effect');
+    userService
+      .getAll()
+      .then((initialUsers) => {
+        console.log('users from API:', initialUsers);
+        setUsers(initialUsers);
+      })
+      .catch(() => setError('Unable to load items'));
+    console.error('Error loading users');
   }, []);
   // console.log('render', items.length, 'items')
 
@@ -158,6 +179,16 @@ const App = () => {
         <button type="submit">Save</button>
       </form>
       <br />
+      <div>
+        {users[0]?.name}
+        <ul>
+          {users.map((item) => (
+            <li key={item.id}>
+              <strong>{item.name}</strong>:{' '}
+            </li>
+          ))}
+        </ul>
+      </div>
       <Footer />
     </div>
   );
