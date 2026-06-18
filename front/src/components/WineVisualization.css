@@ -1,0 +1,272 @@
+/* ─── Wine Visualization ─────────────────────────────────────── */
+
+.wine-viz {
+  position: relative;
+  width: 100%;
+  min-height: 520px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(
+    135deg,
+    #1a0409 0%,
+    #2d0810 25%,
+    #3d1020 50%,
+    #1e0c08 75%,
+    #0f0305 100%
+  );
+  border-radius: 20px;
+  overflow: hidden;
+  margin-bottom: 36px;
+  box-shadow:
+    0 8px 40px rgba(114, 16, 30, 0.5),
+    0 2px 12px rgba(0, 0, 0, 0.6);
+}
+
+/* ─── Ambient background orbs ─── */
+.orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(60px);
+  pointer-events: none;
+  animation: orb-drift 10s ease-in-out infinite alternate;
+}
+
+.orb-1 {
+  width: 280px;
+  height: 280px;
+  background: radial-gradient(circle, rgba(114, 16, 30, 0.5) 0%, transparent 70%);
+  top: -60px;
+  left: -60px;
+  animation-duration: 12s;
+}
+
+.orb-2 {
+  width: 220px;
+  height: 220px;
+  background: radial-gradient(circle, rgba(197, 160, 40, 0.3) 0%, transparent 70%);
+  bottom: -40px;
+  right: -40px;
+  animation-duration: 9s;
+  animation-delay: -3s;
+}
+
+.orb-3 {
+  width: 180px;
+  height: 180px;
+  background: radial-gradient(circle, rgba(160, 50, 74, 0.35) 0%, transparent 70%);
+  top: 50%;
+  left: 60%;
+  animation-duration: 14s;
+  animation-delay: -6s;
+}
+
+@keyframes orb-drift {
+  0% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(20px, -15px) scale(1.08); }
+  100% { transform: translate(-10px, 10px) scale(0.95); }
+}
+
+/* ─── Floating particles ─── */
+.wine-particle {
+  position: absolute;
+  pointer-events: none;
+  animation: particle-float linear infinite;
+  user-select: none;
+  text-shadow: 0 0 8px currentColor;
+}
+
+@keyframes particle-float {
+  0% {
+    transform: translateY(0) rotate(0deg) scale(1);
+    opacity: 0;
+  }
+  10% { opacity: 1; }
+  50% {
+    transform: translateY(-40px) rotate(180deg) scale(1.15);
+    opacity: 0.7;
+  }
+  90% { opacity: 0.4; }
+  100% {
+    transform: translateY(-80px) rotate(360deg) scale(0.8);
+    opacity: 0;
+  }
+}
+
+/* ─── Inner layout ─── */
+.wine-viz-inner {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 36px 24px 28px;
+  width: 100%;
+}
+
+/* ─── Title block ─── */
+.wine-title-block {
+  text-align: center;
+}
+
+.wine-main-title {
+  font-size: clamp(2.6rem, 6vw, 4.2rem);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  line-height: 1.05;
+  margin: 0 0 10px;
+  text-shadow:
+    0 0 30px rgba(197, 160, 40, 0.4),
+    0 2px 8px rgba(0, 0, 0, 0.7);
+}
+
+.wine-title-know {
+  color: #F5E6CA;
+}
+
+.wine-title-wine {
+  background: linear-gradient(135deg, #C5A028 0%, #E8C472 40%, #F7C873 70%, #C5A028 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer 4s linear infinite;
+}
+
+.wine-title-ai {
+  color: rgba(200, 80, 100, 0.9);
+  font-style: italic;
+  font-size: 0.75em;
+  vertical-align: super;
+  -webkit-text-fill-color: rgba(200, 80, 100, 0.9);
+}
+
+@keyframes shimmer {
+  0% { background-position: 0% center; }
+  100% { background-position: 200% center; }
+}
+
+.wine-subtitle {
+  color: rgba(245, 230, 202, 0.6);
+  font-size: clamp(0.8rem, 2vw, 1rem);
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+  margin: 0 0 14px;
+  font-weight: 300;
+}
+
+/* ─── Divider ─── */
+.wine-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-content: center;
+  margin-bottom: 4px;
+}
+
+.divider-line {
+  display: block;
+  width: 80px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(197, 160, 40, 0.5), transparent);
+}
+
+.divider-icon {
+  font-size: 18px;
+  animation: spin-icon 8s linear infinite;
+  display: inline-block;
+}
+
+@keyframes spin-icon {
+  0%, 100% { transform: rotate(-8deg) scale(1); }
+  50% { transform: rotate(8deg) scale(1.12); }
+}
+
+/* ─── Glass container ─── */
+.glass-container {
+  position: relative;
+  width: 160px;
+  height: 220px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.glass-bubble-zone {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  z-index: 5;
+  pointer-events: none;
+  /* Clip to approximate glass shape */
+  clip-path: polygon(25% 3%, 75% 3%, 85% 65%, 65% 85%, 35% 85%, 15% 65%);
+}
+
+.champagne-bubble {
+  position: absolute;
+  border-radius: 50%;
+  bottom: -10px;
+  animation: bubble-rise ease-in infinite;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+@keyframes bubble-rise {
+  0% {
+    bottom: 0%;
+    transform: translateX(0) scale(1);
+    opacity: 0;
+  }
+  10% { opacity: 1; }
+  60% {
+    transform: translateX(6px) scale(0.9);
+    opacity: 0.7;
+  }
+  90% { opacity: 0.2; }
+  100% {
+    bottom: 85%;
+    transform: translateX(-4px) scale(0.6);
+    opacity: 0;
+  }
+}
+
+/* ─── SVG Glass ─── */
+.wine-glass-svg {
+  position: relative;
+  z-index: 10;
+  width: 160px;
+  height: 220px;
+  filter: drop-shadow(0 0 16px rgba(114, 16, 30, 0.7)) drop-shadow(0 0 6px rgba(197, 160, 40, 0.25));
+  animation: glass-breathe 6s ease-in-out infinite;
+}
+
+@keyframes glass-breathe {
+  0%, 100% { filter: drop-shadow(0 0 16px rgba(114, 16, 30, 0.7)) drop-shadow(0 0 6px rgba(197, 160, 40, 0.25)); }
+  50% { filter: drop-shadow(0 0 28px rgba(160, 32, 64, 0.85)) drop-shadow(0 0 12px rgba(247, 200, 115, 0.4)); }
+}
+
+/* ─── Tagline ─── */
+.wine-tagline {
+  color: rgba(245, 230, 202, 0.45);
+  font-size: clamp(0.72rem, 1.8vw, 0.9rem);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  margin: 0;
+  font-weight: 300;
+  animation: fade-in-up 1.2s ease both;
+  animation-delay: 0.4s;
+}
+
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── Responsive ─── */
+@media (max-width: 600px) {
+  .wine-viz {
+    min-height: 400px;
+    border-radius: 12px;
+  }
+  .divider-line { width: 50px; }
+}

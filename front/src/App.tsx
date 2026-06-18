@@ -3,12 +3,15 @@ import './App.css';
 import Footer from './components/Footer';
 import myWineService from './services/myWines';
 import userService from './services/users';
+import loginService from './services/login';
 
 //import Note from './components/Note'
 
 // curl http://localhost:3001/api/users
 // TODO aDD to favourotes list (wine) after search... changing importannce  2
 // TODO revent the user from being able to add same wine multiple
+//window.localStorage.removeItem('loggedNoteappUser')copy
+// kokonaan nollaavaa komentoa:window.localStorage.clear()
 
 type Item = {
   id: number;
@@ -28,6 +31,9 @@ const App = () => {
   const [description, setDescription] = useState('');
   const [searched, setSearched] = useState('');
   const [error, setError] = useState('');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [user, setUser] = useState('');
 
   // useEffect: runs after the first render to perform side-effects.
   // Here it fetches the items from the backend API and sets state.
@@ -55,6 +61,15 @@ const App = () => {
     console.error('Error loading users');
   }, []);
   // console.log('render', items.length, 'items')
+
+  useEffect(() => {
+    const loggedUserJSON = window.localStorage.getItem('loggedNoteappUser');
+    if (loggedUserJSON) {
+      const user = JSON.parse(loggedUserJSON);
+      setUser(user);
+      myWineService.setToken(user.token);
+    }
+  }, []);
 
   const handleSearch = (e: ChangeEvent<HTMLInputElement>) => {
     setSearched(e.target.value);
@@ -125,12 +140,86 @@ const App = () => {
   //     setNotes(notes.map(note => note.id === id ? response.data : note))
   //   })
   // }
+  const handleLogin = async (e: React.SubmitEvent<HTMLFormElement>) => {
+    e?.preventDefault();
+    console.log('loggin with ', username, password);
+    try {
+      const user = await loginService.login({ username, password });
+      window.localStorage.setItem('loggedNoteappUser', JSON.stringify(user));
+      myWineService.setToken(user.token);
+      setUser(user);
+      setUsername('');
+      setPassword('');
+    } catch (error) {
+      console.log('error submitting', error);
+      //setErrorMessage('wrong credentials');
+      setTimeout(() => {
+        //setErrorMessage(null);
+      }, 5000);
+    }
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPassword(e.target.value);
+    console.log(password);
+  };
+
+  const loginForm = () => (
+    <div>
+      <h2>Login</h2>
+      <form onSubmit={handleLogin}>
+        <div>
+          <label>
+            <input
+              type="text"
+              value={username}
+              placeholder="Enter your name"
+              onChange={({ target }) => setUsername(target.value)}
+            />
+          </label>
+        </div>
+        <label>
+          <input type="password" value={password} placeholder="password" onChange={handleChange} />
+        </label>
+        <button type="submit">login</button>
+      </form>
+    </div>
+  );
+
+  const myWineForm = () => (
+    <div>
+      <h2>Add your wines</h2>
+
+      <form onSubmit={addItem} className="item-form">
+        <div>
+          <label>
+            Name
+            <input value={name} placeholder="wine name" onChange={handleNameChange} required />
+          </label>
+        </div>
+        <div>
+          <label>
+            Description
+            <input value={description} onChange={handleDescriptionChange} />
+          </label>
+        </div>
+        <button type="submit">Save</button>
+      </form>
+    </div>
+  );
 
   return (
     <div className="App">
       <header>
         <h1>KnowWine AI</h1>
       </header>
+
+      {!user && loginForm()}
+      {user && (
+        <div>
+          <p>{user.name} logged in</p>
+        </div>
+      )}
 
       <h2>Search wines</h2>
       <div className="search-container">
@@ -162,22 +251,7 @@ const App = () => {
         </ul>
       </div>
       {error && <div className="error">{error}</div>}
-      <h2>Add your wines</h2>
-      <form onSubmit={addItem} className="item-form">
-        <div>
-          <label>
-            Name
-            <input value={name} placeholder="wine name" onChange={handleNameChange} required />
-          </label>
-        </div>
-        <div>
-          <label>
-            Description
-            <input value={description} onChange={handleDescriptionChange} />
-          </label>
-        </div>
-        <button type="submit">Save</button>
-      </form>
+      {user && myWineForm()}
       <br />
       <div>
         {users[0]?.name}
