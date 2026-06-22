@@ -15,6 +15,7 @@ Content-type: application/json
   
 }
 ###
+
 POST http://localhost:3001/api/mywines
 Content-type: application/json
 Authorization: Bearer hereshouldbetoken
@@ -25,12 +26,14 @@ Authorization: Bearer hereshouldbetoken
   "userId":3
   
 }
+
 ###
+
 POST http://localhost:3001/api/login
 Content-type: application/json
 
 {
   "username": "mina",
   "password": "salainen",
-  
+
 }

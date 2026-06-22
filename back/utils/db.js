@@ -42,6 +42,13 @@ const initDb = async () => {
  * Establish a connection and ensure schema exists.
  * Throws on failure so callers can decide how to proceed.
  */
+
+/* \l          -- databases
+\c myapp    -- connect database
+\dt         -- tables
+\d users    -- table structure
+SELECT * FROM users; */
+
 const connectToDatabase = async () => {
   // simple check that the pool can connect
   await pool.query('SELECT 1');

@@ -1,39 +1,28 @@
-import { useEffect, useState, type ChangeEvent, type SyntheticEvent } from 'react';
 import './App.css';
-import Footer from './components/Footer';
+import { useState, useEffect } from 'react';
 import myWineService from './services/myWines';
-import userService from './services/users';
-import loginService from './services/login';
 
-//import Note from './components/Note'
+import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
+import Footer from './components/Footer';
+import MyWineForm from './components/MyWineForm';
+import MyWines from './components/MyWines';
+import Home from './components/Home';
 
 // curl http://localhost:3001/api/users
 // TODO aDD to favourotes list (wine) after search... changing importannce  2
 // TODO revent the user from being able to add same wine multiple
 //window.localStorage.removeItem('loggedNoteappUser')copy
 // kokonaan nollaavaa komentoa:window.localStorage.clear()
-
-type Item = {
+type Wine = {
   id: number;
   name: string;
   description: string;
 };
-type User = {
-  id: number;
-  name: string;
-  username: string;
-};
-
 const App = () => {
-  const [items, setItems] = useState<Item[]>([]);
-  const [users, setUsers] = useState<User[]>([]);
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [searched, setSearched] = useState('');
+  const [wines, setWines] = useState<Wine[]>([]);
   const [error, setError] = useState('');
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [user, setUser] = useState('');
+
+  //const wineFormRef = useRef();
 
   // useEffect: runs after the first render to perform side-effects.
   // Here it fetches the items from the backend API and sets state.
@@ -42,72 +31,23 @@ const App = () => {
     console.log('effect');
     myWineService
       .getAll()
-      .then((initialItems) => {
-        setItems(initialItems);
+      .then((initialWines) => {
+        setWines(initialWines);
       })
       .catch(() => setError('Unable to load items'));
     console.error('Error loading item');
   }, []);
 
-  useEffect(() => {
-    console.log('effect');
-    userService
-      .getAll()
-      .then((initialUsers) => {
-        console.log('users from API:', initialUsers);
-        setUsers(initialUsers);
-      })
-      .catch(() => setError('Unable to load items'));
-    console.error('Error loading users');
-  }, []);
-  // console.log('render', items.length, 'items')
-
-  useEffect(() => {
-    const loggedUserJSON = window.localStorage.getItem('loggedNoteappUser');
-    if (loggedUserJSON) {
-      const user = JSON.parse(loggedUserJSON);
-      setUser(user);
-      myWineService.setToken(user.token);
-    }
-  }, []);
-
-  const handleSearch = (e: ChangeEvent<HTMLInputElement>) => {
-    setSearched(e.target.value);
-  };
-
-  const handleNameChange = (e: ChangeEvent<HTMLInputElement>) => {
-    setName(e.target.value);
-  };
-
-  const handleDescriptionChange = (e: ChangeEvent<HTMLInputElement>) => {
-    setDescription(e.target.value);
-  };
-
-  const filteredItems =
-    searched.trim() === ''
-      ? []
-      : items.filter((item) => {
-          const lowerSearch = searched.toLowerCase().trim();
-          return (
-            item.name.toLowerCase().includes(lowerSearch) ||
-            item.description.toLowerCase().includes(lowerSearch)
-          );
-        });
-
-  const addItem = (event: SyntheticEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    console.log('button clicked', event.target);
-    const newItemObject: Item = {
-      id: items.length + 1, // This is just a placeholder. In a real app, the backend would assign the ID.
-      name: name,
-      description: description,
-    };
+  // const myWineForm = () => (
+  //   <Toggable buttonLabel="add wine">
+  //     <MyWineForm addItem={addItem} />
+  //   </Toggable>
+  // );
+  const addWine = (newWineObject: Wine) => {
     myWineService
-      .create(newItemObject)
-      .then((returnedItem) => {
-        setItems((prev) => prev.concat(returnedItem));
-        setName('');
-        setDescription('');
+      .create(newWineObject)
+      .then((returnedWine) => {
+        setWines((prev) => prev.concat(returnedWine));
         setError('');
       })
       .catch((err) => {
@@ -117,160 +57,91 @@ const App = () => {
       });
   };
 
-  const deleteItem = (id: number) => {
-    const itemToDelete = items.find((item) => item.id === id);
-    console.log('delete item with id', id, itemToDelete);
+  const deleteWine = (id: number) => {
+    const wineToDelete = wines.find((item) => item.id === id);
+    console.log('delete wine with id', id, wineToDelete);
 
     myWineService
-      .deleteItem(id)
+      .deleteWine(id)
       .then(() => {
-        console.log('item deleted', id);
-        setItems((prev) => prev.filter((item) => item.id !== id));
+        console.log('wine deleted', id);
+        setWines((prev) => prev.filter((item) => item.id !== id));
       })
       .catch(() => {
         setError('Error deleting item');
       });
   };
-  //   const toggleImportanceOf = id => {
-  //   const url = `http://localhost:3001/notes/${id}`
-  //   const note = notes.find(n => n.id === id)
-  //   const changedNote = { ...note, important: !note.important }
 
-  //   axios.put(url, changedNote).then(response => {
-  //     setNotes(notes.map(note => note.id === id ? response.data : note))
-  //   })
-  // }
-  const handleLogin = async (e: React.SubmitEvent<HTMLFormElement>) => {
-    e?.preventDefault();
-    console.log('loggin with ', username, password);
-    try {
-      const user = await loginService.login({ username, password });
-      window.localStorage.setItem('loggedNoteappUser', JSON.stringify(user));
-      myWineService.setToken(user.token);
-      setUser(user);
-      setUsername('');
-      setPassword('');
-    } catch (error) {
-      console.log('error submitting', error);
-      //setErrorMessage('wrong credentials');
-      setTimeout(() => {
-        //setErrorMessage(null);
-      }, 5000);
-    }
+  const padding = {
+    padding: 5,
   };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setPassword(e.target.value);
-    console.log(password);
-  };
-  const handleLogout = () => {
-    window.localStorage.clear();
-    //nav('/')
-  };
-
-  const loginForm = () => (
-    <div>
-      <h2>Login</h2>
-      <form onSubmit={handleLogin}>
-        <div>
-          <label>
-            <input
-              type="text"
-              value={username}
-              placeholder="Enter your name"
-              onChange={({ target }) => setUsername(target.value)}
-            />
-          </label>
-        </div>
-        <label>
-          <input type="password" value={password} placeholder="password" onChange={handleChange} />
-        </label>
-        <button type="submit">login</button>
-      </form>
-    </div>
-  );
-
-  const myWineForm = () => (
-    <div>
-      <h2>Add your wines</h2>
-
-      <form onSubmit={addItem} className="item-form">
-        <div>
-          <label>
-            Name
-            <input value={name} placeholder="wine name" onChange={handleNameChange} required />
-          </label>
-        </div>
-        <div>
-          <label>
-            Description
-            <input value={description} onChange={handleDescriptionChange} />
-          </label>
-        </div>
-        <button type="submit">Save</button>
-      </form>
-    </div>
-  );
 
   return (
-    <div className="App">
-      <header>
-        <h1>KnowWine AI</h1>
-      </header>
-
-      {!user && loginForm()}
-      {user && (
-        <div>
-          <p>{user.name} logged in</p>
-          <button onClick={handleLogout}>Log out</button>
-        </div>
-      )}
-
-      <h2>Search wines</h2>
-      <div className="search-container">
-        <input type="text" placeholder="Search.." value={searched} onChange={handleSearch} />
-      </div>
-
-      <div className="search-container">
-        <h2>Search Results</h2>
-        <ul>
-          {filteredItems.map((item) => (
-            <li key={item.id}>
-              <strong>{item.name}</strong>: {item.description}{' '}
-              {/* <button onClick={() => deleteItem(item.id)}>Delete</button> */}
-            </li>
-          ))}
-        </ul>
-        {searched.trim() !== '' && filteredItems.length === 0 && <p>No matching wines found.</p>}
-      </div>
-
-      <div className="search-container">
-        <h2>My favourites</h2>
-        <ul>
-          {items.map((item) => (
-            <li className="favourite-item" key={item.id}>
-              <strong>{item.name}</strong>: {item.description}{' '}
-              <button onClick={() => deleteItem(item.id)}>Delete</button>
-            </li>
-          ))}
-        </ul>
-      </div>
-      {error && <div className="error">{error}</div>}
-      {user && myWineForm()}
-      <br />
+    <Router>
       <div>
-        {users[0]?.name}
-        <ul>
-          {users.map((item) => (
-            <li key={item.id}>
-              <strong>{item.name}</strong>:{' '}
-            </li>
-          ))}
-        </ul>
+        <Link style={padding} to="/">
+          home
+        </Link>
+        <Link style={padding} to="/mywines">
+          My Wines
+        </Link>
+        <Link style={padding} to="/addwine">
+          Add Wine
+        </Link>
       </div>
+
+      <Routes>
+        <Route path="/mywines" element={<MyWines wines={wines} deleteWine={deleteWine} />} />
+        <Route path="/addwine" element={<MyWineForm addWine={addWine} />} />
+        <Route path="/" element={<Home />} />
+      </Routes>
       <Footer />
-    </div>
+    </Router>
+
+    //   <h2>Search wines</h2>
+    //   <div className="search-container">
+    //     <input type="text" placeholder="Search.." value={searched} onChange={handleSearch} />
+    //   </div>
+
+    //   <div className="search-container">
+    //     <h2>Search Results</h2>
+    //     <ul>
+    //       {filteredItems.map((item) => (
+    //         <li key={item.id}>
+    //           <strong>{item.name}</strong>: {item.description}{' '}
+    //           {/* <button onClick={() => deleteItem(item.id)}>Delete</button> */}
+    //         </li>
+    //       ))}
+    //     </ul>
+    //     {searched.trim() !== '' && filteredItems.length === 0 && <p>No matching wines found.</p>}
+    //   </div>
+
+    //   <div className="search-container">
+    //     <h2>My favourites</h2>
+    //     <ul>
+    //       {items.map((item) => (
+    //         <li className="favourite-item" key={item.id}>
+    //           <strong>{item.name}</strong>: {item.description}{' '}
+    //           <button onClick={() => deleteItem(item.id)}>Delete</button>
+    //         </li>
+    //       ))}
+    //     </ul>
+    //   </div>
+    //   {error && <div className="error">{error}</div>}
+    //   {user && myWineForm()}
+    //   <br />
+    //   <div>
+    //     {users[0]?.name}
+    //     <ul>
+    //       {users.map((item) => (
+    //         <li key={item.id}>
+    //           <strong>{item.name}</strong>:{' '}
+    //         </li>
+    //       ))}
+    //     </ul>
+    //   </div>
+    //   <Footer />
+    // </div>
   );
 };
-
 export default App;

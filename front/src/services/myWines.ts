@@ -33,7 +33,7 @@ const update = (id: number, newObject: ItemInput) => {
   return request.then((response) => response.data);
 };
 
-const deleteItem = (id: number) => {
+const deleteWine = (id: number) => {
   return axios.delete(`${baseUrl}/${id}`);
 };
 
@@ -41,6 +41,6 @@ export default {
   getAll,
   create,
   update,
-  deleteItem,
+  deleteWine,
   setToken,
 };

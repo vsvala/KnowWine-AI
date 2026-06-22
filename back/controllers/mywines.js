@@ -48,22 +48,17 @@ router.get('/:id', async (req, res, next) => {
 router.post('/', async (req, res, next) => {
   try {
     const { name, description } = req.body;
-    const body = req.body;
 
     const decodedToken = jwt.verify(getTokenFrom(req), process.env.SECRET);
     if (!decodedToken.id) {
       return res.status(401).json({ error: 'token invalid' });
     }
-    const user = await User.findById(decodedToken.id);
+    const user = await User.getById(decodedToken.id);
 
     if (!user) {
-      return res.status(400).json({ error: 'UserId missing or not valid' });
+      return res.status(401).json({ error: 'token invalid' });
     }
 
-    const users = await User.getById(body.userId);
-    if (!users || users.length === 0) {
-      return res.status(400).json({ error: 'userId missing or not valid' });
-    }
     if (!validateName(name)) {
       return res.status(400).json({ error: 'name must be 2–100 characters' });
     }
@@ -71,7 +66,7 @@ router.post('/', async (req, res, next) => {
       return res.status(400).json({ error: 'description must be 5–1000 characters' });
     }
 
-    const newResult = await mywineModel.create({ name, description, userId: body.userId });
+    const newResult = await mywineModel.create({ name, description, userId: user.id });
     res.status(201).json(newResult);
   } catch (error) {
     if (error.code === '23505') {
