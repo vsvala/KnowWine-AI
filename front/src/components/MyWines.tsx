@@ -1,7 +1,8 @@
 import { useEffect, useState, type ChangeEvent } from 'react';
-import myWineService from '../services/myWines';
-import userService from '../services/users';
-import loginService from '../services/login';
+import { Link } from 'react-router-dom';
+//import myWineService from '../services/myWines';
+//import userService from '../services/users';
+//import loginService from '../services/login';
 import LoginForm from './LoginForm';
 import Toggable from './Toggable';
 //import MyWineForm from './MyWineForm';
@@ -22,38 +23,38 @@ interface MyWinesProps {
   deleteWine: (id: number) => void;
 }
 
-const MyWines = ({ wines, deleteWine }: MyWinesProps) => {
+const MyWines = ({ wines }: MyWinesProps) => {
   //const [wines, setWines] = useState<Wine[]>([]);
-  const [users, setUsers] = useState<User[]>([]);
+  //const [users, setUsers] = useState<User[]>([]);
   const [error, setError] = useState('');
-  const [user, setUser] = useState('');
+  // const [user, setUser] = useState('');
   const [searched, setSearched] = useState('');
 
   //const wineFormRef = useRef();
 
-  useEffect(() => {
-    console.log('effect');
-    userService
-      .getAll()
-      .then((initialUsers) => {
-        console.log('users from API:', initialUsers);
-        setUsers(initialUsers);
-      })
-      .catch(() => setError('Unable to load items'));
-    console.error('Error loading users');
-  }, []);
-  // console.log('render', items.length, 'items')
+  // useEffect(() => {
+  //   console.log('effect');
+  //   userService
+  //     .getAll()
+  //     .then((initialUsers) => {
+  //       console.log('users from API:', initialUsers);
+  //       setUsers(initialUsers);
+  //     })
+  //     .catch(() => setError('Unable to load items'));
+  //   console.error('Error loading users');
+  // }, []);
+  // // console.log('render', items.length, 'items')
 
-  useEffect(() => {
-    const loggedUserJSON = window.localStorage.getItem('loggedWineappUser');
-    if (loggedUserJSON) {
-      const user = JSON.parse(loggedUserJSON);
-      console.log(user);
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-      setUser(user);
-      myWineService.setToken(user.token);
-    }
-  }, []);
+  // useEffect(() => {
+  //   const loggedUserJSON = window.localStorage.getItem('loggedWineappUser');
+  //   if (loggedUserJSON) {
+  //     const user = JSON.parse(loggedUserJSON);
+  //     console.log(user);
+  //     // eslint-disable-next-line react-hooks/exhaustive-deps
+  //     setUser(user);
+  //     myWineService.setToken(user.token);
+  //   }
+  // }, []);
 
   // const addWine = (newWineObject: Wine) => {
   //   myWineService
@@ -78,27 +79,27 @@ const MyWines = ({ wines, deleteWine }: MyWinesProps) => {
   //     setNotes(notes.map(note => note.id === id ? response.data : note))
   //   })
   // }
-  const login = async (username: string, password: string) => {
-    console.log('loggin with ', username, password);
-    try {
-      const user = await loginService.login({ username, password });
-      window.localStorage.setItem('loggedWineappUser', JSON.stringify(user));
-      myWineService.setToken(user.token);
-      setUser(user);
-    } catch (error) {
-      console.log('error submitting', error);
-      //setErrorMessage('wrong credentials');
-      setTimeout(() => {
-        //setErrorMessage(null);
-      }, 5000);
-    }
-  };
+  // const login = async (username: string, password: string) => {
+  //   console.log('loggin with ', username, password);
+  //   try {
+  //     const user = await loginService.login({ username, password });
+  //     window.localStorage.setItem('loggedWineappUser', JSON.stringify(user));
+  //     myWineService.setToken(user.token);
+  //     setUser(user);
+  //   } catch (error) {
+  //     console.log('error submitting', error);
+  //     //setErrorMessage('wrong credentials');
+  //     setTimeout(() => {
+  //       //setErrorMessage(null);
+  //     }, 5000);
+  //   }
+  // };
 
-  const handleLogout = () => {
-    window.localStorage.removeItem('loggedWineappUser');
-    myWineService.setToken('');
-    setUser('');
-  };
+  // const handleLogout = () => {
+  //   window.localStorage.removeItem('loggedWineappUser');
+  //   myWineService.setToken('');
+  //   setUser('');
+  // };
 
   const handleSearch = (e: ChangeEvent<HTMLInputElement>) => {
     setSearched(e.target.value);
@@ -115,11 +116,11 @@ const MyWines = ({ wines, deleteWine }: MyWinesProps) => {
           );
         });
 
-  const loginForm = () => (
-    <Toggable buttonLabel="login">
-      <LoginForm login={login} />
-    </Toggable>
-  );
+  // const loginForm = () => (
+  //   <Toggable buttonLabel="login">
+  //     <LoginForm login={login} />
+  //   </Toggable>
+  // );
   // const myWineForm = () => (
   //   <Toggable buttonLabel="add wine">
   //     <MyWineForm addWine={addWine} />
@@ -138,7 +139,8 @@ const MyWines = ({ wines, deleteWine }: MyWinesProps) => {
         <ul>
           {filteredWines.map((wine) => (
             <li key={wine.id}>
-              <strong>{wine.name}</strong>: {wine.description}{' '}
+              <Link to={`/mywines/${wine.id}`}>{wine.name}</Link>
+              {/* <strong>{wine.name}</strong>: {wine.description}{' '} */}
               {/* <button onClick={() => deleteItem(item.id)}>Delete</button> */}
             </li>
           ))}
@@ -146,21 +148,18 @@ const MyWines = ({ wines, deleteWine }: MyWinesProps) => {
         {searched.trim() !== '' && filteredWines.length === 0 && <p>No matching wines found.</p>}
       </div>
 
-      {!user && loginForm()}
-      {user && (
-        <div>
-          <p>{user.name} logged in</p>
-          <button onClick={handleLogout}>Log out</button>
-        </div>
-      )}
+      {/* {!user && loginForm()} */}
 
       <div className="search-container">
-        <h2>My favourites</h2>
+        <h2>My Wines</h2>
         <ul>
           {wines.map((wine: Wine) => (
             <li className="favourite-item" key={wine.id}>
-              <strong>{wine.name}</strong>: {wine.description}{' '}
-              <button onClick={() => deleteWine(wine.id)}>Delete</button>
+              <Link to={`/mywines/${wine.id}`}>
+                <strong>{wine.name}</strong>
+              </Link>
+              {/* <strong>{wine.name}</strong>: {wine.description}{' '} */}
+              {/* <button onClick={() => deleteWine(wine.id)}>Delete</button> */}
             </li>
           ))}
         </ul>
@@ -169,16 +168,6 @@ const MyWines = ({ wines, deleteWine }: MyWinesProps) => {
       {error && <div className="error">{error}</div>}
       {/* {user && myWineForm()} */}
       <br />
-      <div>
-        {users[0]?.name}
-        <ul>
-          {users.map((item) => (
-            <li key={item.id}>
-              <strong>{item.name}</strong>:{' '}
-            </li>
-          ))}
-        </ul>
-      </div>
     </div>
   );
 };

@@ -1,12 +1,20 @@
 import './App.css';
 import { useState, useEffect } from 'react';
 import myWineService from './services/myWines';
+import userService from './services/users';
+import loginService from './services/login';
+import wineListService from './services/wineList';
 
-import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
+import { Routes, Route, Link, useMatch } from 'react-router-dom';
 import Footer from './components/Footer';
 import MyWineForm from './components/MyWineForm';
 import MyWines from './components/MyWines';
+import WineSingle from './components/WineSingle';
+
+import WineList from './components/WineList';
+import MyWine from './components/MyWine';
 import Home from './components/Home';
+import LoginForm from './components/LoginForm';
 
 // curl http://localhost:3001/api/users
 // TODO aDD to favourotes list (wine) after search... changing importannce  2
@@ -18,32 +26,83 @@ type Wine = {
   name: string;
   description: string;
 };
+
+type WineLi = {
+  id: number;
+  display_name: string;
+  color: string;
+  type: string;
+  sub_type: string;
+  residual_sugar: string | null;
+  producer: object;
+  region: string | null;
+};
+
+type User = {
+  id: number;
+  name: string;
+  username: string;
+};
 const App = () => {
   const [wines, setWines] = useState<Wine[]>([]);
   const [error, setError] = useState('');
+  const [wineList, setWineList] = useState<WineLi[]>([]);
+  const [user, setUser] = useState('');
 
   //const wineFormRef = useRef();
 
   // useEffect: runs after the first render to perform side-effects.
   // Here it fetches the items from the backend API and sets state.
   // Runs once because the dependency array is empty (`[]`).
+
+  useEffect(() => {
+    console.log('effect');
+    userService
+      .getAll()
+      .then((initialUsers) => {
+        console.log('users from API:', initialUsers);
+        setUser(initialUsers);
+      })
+      .catch(() => setError('Unable to load items'));
+    console.error('Error loading users');
+  }, []);
+  // console.log('render', items.length, 'items')
+
+  useEffect(() => {
+    const loggedUserJSON = window.localStorage.getItem('loggedWineappUser');
+    if (loggedUserJSON) {
+      const user = JSON.parse(loggedUserJSON);
+      console.log(user);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      setUser(user);
+      myWineService.setToken(user.token);
+    }
+  }, []);
+
   useEffect(() => {
     console.log('effect');
     myWineService
       .getAll()
-      .then((initialWines) => {
-        setWines(initialWines);
+      .then((initialMyWines) => {
+        setWines(initialMyWines);
       })
-      .catch(() => setError('Unable to load items'));
-    console.error('Error loading item');
+      .catch(() => setError('Unable to load wines'));
   }, []);
 
-  // const myWineForm = () => (
-  //   <Toggable buttonLabel="add wine">
-  //     <MyWineForm addItem={addItem} />
-  //   </Toggable>
-  // );
+  useEffect(() => {
+    //fetch('http://localhost:3001/api/wines')
+    wineListService
+      .getAll()
+      // .then((res) => res.json())
+      .then((initialWineList) => {
+        setWineList(initialWineList);
+      })
+      .catch((err) => setError(err + 'Unable to load wineList'));
+    //console.error(err));
+  }, []);
+
   const addWine = (newWineObject: Wine) => {
+    console.log(newWineObject);
     myWineService
       .create(newWineObject)
       .then((returnedWine) => {
@@ -72,31 +131,72 @@ const App = () => {
       });
   };
 
+  const login = async (username: string, password: string) => {
+    console.log('loggin with ', username, password);
+    try {
+      const user = await loginService.login({ username, password });
+      window.localStorage.setItem('loggedWineappUser', JSON.stringify(user));
+      myWineService.setToken(user.token);
+      setUser(user);
+    } catch (error) {
+      console.log('error submitting', error);
+      //setErrorMessage('wrong credentials');
+      setTimeout(() => {
+        //setErrorMessage(null);
+      }, 5000);
+    }
+  };
+
+  const handleLogout = () => {
+    window.localStorage.removeItem('loggedWineappUser');
+    myWineService.setToken('');
+    setUser('');
+  };
+
   const padding = {
     padding: 5,
   };
 
+  const match = useMatch('/mywines/:id');
+  const wine = match ? wines.find((wine) => wine.id === Number(match.params.id)) : null;
+
   return (
-    <Router>
-      <div>
-        <Link style={padding} to="/">
-          home
+    <div>
+      <Link style={padding} to="/">
+        home
+      </Link>
+      <Link style={padding} to="/wines">
+        Wines
+      </Link>
+      <Link style={padding} to="/mywines">
+        MyWines
+      </Link>
+      <Link style={padding} to="/addwine">
+        Add Wine
+      </Link>
+      {user ? (
+        <button onClick={handleLogout}>Log out ({user.name})</button>
+      ) : (
+        <Link style={padding} to="/login">
+          Login
         </Link>
-        <Link style={padding} to="/mywines">
-          My Wines
-        </Link>
-        <Link style={padding} to="/addwine">
-          Add Wine
-        </Link>
-      </div>
+      )}
 
       <Routes>
+        <Route path="/wines/:id" element={<WineSingle wine={wine} />} />
+        <Route
+          path="/mywines/:id"
+          element={<MyWine id={wine?.id} wine={wine} deleteWine={deleteWine} />}
+        />
         <Route path="/mywines" element={<MyWines wines={wines} deleteWine={deleteWine} />} />
+        <Route path="/wines" element={<WineList wineList={wineList} />} />
         <Route path="/addwine" element={<MyWineForm addWine={addWine} />} />
         <Route path="/" element={<Home />} />
+        <Route path="/login" element={<LoginForm login={login} />} />
       </Routes>
+
       <Footer />
-    </Router>
+    </div>
 
     //   <h2>Search wines</h2>
     //   <div className="search-container">

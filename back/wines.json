@@ -1,0 +1,148 @@
+{
+  "data": [
+    {
+      "id": 1,
+      "display_name": "Schieferkopf, Lieu Dit Buehl Riesling",
+      "color": "white",
+      "type": "wine",
+      "sub_type": "still",
+      "residual_sugar": null,
+      "producer": {
+        "id": 1,
+        "name": "Schieferkopf",
+        "title": null,
+        "display_name": "Schieferkopf"
+      },
+      "region": null
+    },
+    {
+      "id": 2,
+      "display_name": "Schieferkopf, Riesling Grand Cru, Kastelberg",
+      "color": "white",
+      "type": "wine",
+      "sub_type": "still",
+      "residual_sugar": null,
+      "producer": {
+        "id": 1,
+        "name": "Schieferkopf",
+        "title": null,
+        "display_name": "Schieferkopf"
+      },
+      "region": null
+    },
+    {
+      "id": 3,
+      "display_name": "Schieferkopf, Pinot Gris",
+      "color": "white",
+      "type": "wine",
+      "sub_type": "still",
+      "residual_sugar": null,
+      "producer": {
+        "id": 1,
+        "name": "Schieferkopf",
+        "title": null,
+        "display_name": "Schieferkopf"
+      },
+      "region": null
+    },
+    {
+      "id": 4,
+      "display_name": "Schieferkopf, Riesling Grand Cru, Altenberg de Bergheim",
+      "color": "white",
+      "type": "wine",
+      "sub_type": "still",
+      "residual_sugar": null,
+      "producer": {
+        "id": 1,
+        "name": "Schieferkopf",
+        "title": null,
+        "display_name": "Schieferkopf"
+      },
+      "region": null
+    },
+    {
+      "id": 5,
+      "display_name": "Schieferkopf, Sylvaner",
+      "color": "white",
+      "type": "wine",
+      "sub_type": "still",
+      "residual_sugar": null,
+      "producer": {
+        "id": 1,
+        "name": "Schieferkopf",
+        "title": null,
+        "display_name": "Schieferkopf"
+      },
+      "region": null
+    },
+    {
+      "id": 6,
+      "display_name": "Schieferkopf, Weibelsberg Riesling",
+      "color": "white",
+      "type": "wine",
+      "sub_type": "still",
+      "residual_sugar": null,
+      "producer": {
+        "id": 1,
+        "name": "Schieferkopf",
+        "title": null,
+        "display_name": "Schieferkopf"
+      },
+      "region": null
+    },
+    {
+      "id": 7,
+      "display_name": "Hugel, Riesling Jubilee Grand Cru, Altenberg de Bergheim",
+      "color": "white",
+      "type": "wine",
+      "sub_type": "still",
+      "residual_sugar": null,
+      "producer": {
+        "id": 2,
+        "name": "Hugel",
+        "title": null,
+        "display_name": "Hugel"
+      },
+      "region": null
+    },
+
+    {
+      "id": 99,
+      "display_name": "Bindi, Original Vineyard Pinot Noir, Macedon Ranges",
+      "color": "red",
+      "type": "wine",
+      "sub_type": "still",
+      "residual_sugar": null,
+      "producer": {
+        "id": 27,
+        "name": "Bindi",
+        "title": null,
+        "display_name": "Bindi"
+      },
+      "region": null
+    },
+    {
+      "id": 100,
+      "display_name": "De Bortoli, The Estate Vineyard Pinot Noir",
+      "color": "red",
+      "type": "wine",
+      "sub_type": "still",
+      "residual_sugar": null,
+      "producer": {
+        "id": 28,
+        "name": "De Bortoli",
+        "title": null,
+        "display_name": "De Bortoli"
+      },
+      "region": null
+    }
+  ],
+  "meta": {
+    "current_page": 1,
+    "last_page": 2648,
+    "per_page": 100,
+    "total": 264737,
+    "from": 1,
+    "to": 100
+  }
+}
