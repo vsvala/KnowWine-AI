@@ -17,6 +17,7 @@ A web app for discovering and managing wines. Browse a wine catalogue from the G
 | Frontend | React (TypeScript), Vite, Axios                |
 | Backend  | Node.js, Express 5                             |
 | Database | PostgreSQL                                     |
+| Cache    | Redis (ioredis) — production wine catalogue    |
 | Auth     | JWT (`jsonwebtoken`), bcrypt                   |
 | Deploy   | render.com (backend serves the built frontend) |
 
@@ -93,7 +94,11 @@ NODE_ENV=development
 SECRET=your_jwt_secret_here
 GRAPEMINDS_URL=https://api.grapeminds.com
 GRAPEMINDS_API_KEY=your_api_key_here
+REDIS_HOST=localhost
+REDIS_PORT=6379
 ```
+
+`REDIS_HOST` and `REDIS_PORT` default to `localhost` and `6379` if not set. Redis is only used in `production` mode — in `development` and `test` the wine catalogue is served from the local `wines.json` file, so Redis is not required for local dev.
 
 ### 3. Install dependencies
 
@@ -167,6 +172,43 @@ Data is preserved between restarts. Only `docker rm knowwine-test` deletes it pe
 
 ---
 
+## Redis caching
+
+In **production**, the `GET /api/wines` endpoint caches the GrapeMinds wine catalogue in Redis to avoid hitting the external API on every request. In **development** and **test** the endpoint returns the local `wines.json` file and Redis is not used.
+
+### How it works
+
+1. On the first production request Redis is empty — the backend fetches wines from the GrapeMinds API and stores the result under the key `grapeminds:wines` with a TTL of 60 days.
+2. On subsequent requests the cached JSON is returned directly from Redis, with no external API call.
+3. After 60 days the key expires and the next request refreshes the cache from the API.
+
+The Redis client is configured in `back/utils/redis.js` using [ioredis](https://github.com/redis/ioredis). Connection is controlled by `REDIS_HOST` and `REDIS_PORT` environment variables (defaults: `localhost`, `6379`).
+
+### Running Redis locally (production-mode testing only)
+
+```bash
+docker run --name knowwine-redis -p 6379:6379 -d redis:7
+```
+
+Or start an existing container:
+
+```bash
+docker start knowwine-redis
+```
+
+Set `NODE_ENV=production` in `back/.env` to activate the Redis path, then start the backend normally.
+
+To inspect the cache:
+
+```bash
+docker exec -it knowwine-redis redis-cli
+> GET grapeminds:wines   # returns cached JSON or (nil) if empty
+> TTL grapeminds:wines   # seconds remaining
+> DEL grapeminds:wines   # force a cache refresh on next request
+```
+
+---
+
 ## Running frontend component tests
 
 Tests use Vitest with jsdom and React Testing Library. No database or running server needed.
@@ -186,9 +228,9 @@ This generates a coverage summary in the terminal and an HTML report in `front/c
 
 ### What is tested
 
-| File | Test |
-| ---- | ---- |
-| `MyWine.tsx` | Renders wine name and description |
+| File             | Test                                                                  |
+| ---------------- | --------------------------------------------------------------------- |
+| `MyWine.tsx`     | Renders wine name and description                                     |
 | `MyWineForm.tsx` | Typing into fields and submitting calls `addWine` with correct values |
 
 Tests live in `front/tests/` and use `MemoryRouter` to satisfy React Router's routing context.
@@ -213,7 +255,6 @@ Hosted on [render.com](https://render.com).
 
 ## Todo
 
-- [ ] Redis for APi query caching (Back)
 - [ ] User administration panel (admin)
 - [ ] Tests for frontend and end-to-end
 - [ ] Styles with Material UI
@@ -227,6 +268,8 @@ Hosted on [render.com](https://render.com).
 
 ## Done
 
+- [x] Redis caching for wine catalogue (production, 60-day TTL, ioredis)
+- [x] Frontend component tests (Vitest + React Testing Library)
 - [x] External wine API integration (GrapeMinds)
 - [x] Navigation with React Router (BrowserRouter)
 - [x] JWT token authentication and login/logout

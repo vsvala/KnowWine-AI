@@ -111,7 +111,7 @@ const App = () => {
       .then((returnedWine) => {
         setWines((prev) => prev.concat(returnedWine));
         setError('');
-        setNotification({ text: `Wine '${returnedWine.display_name}' added!`, type: 'success' });
+        setNotification({ text: `Wine '${returnedWine.name}' added!`, type: 'success' });
         setTimeout(() => {
           setNotification(null);
         }, 5000);
@@ -201,15 +201,14 @@ const App = () => {
           ) : (
             ''
           )}
-          <Button color="inherit">
-            {user ? (
-              <button onClick={handleLogout}>Log out ({user.name})</button>
-            ) : (
-              <Link style={padding} to="/login">
-                Login
-              </Link>
-            )}
-          </Button>
+
+          {user ? (
+            <button onClick={handleLogout}>Log out ({user.name})</button>
+          ) : (
+            <Link style={padding} to="/login">
+              Login
+            </Link>
+          )}
         </Toolbar>
       </AppBar>
       <Container sx={{ padding: '30px; 0px ' }}>
