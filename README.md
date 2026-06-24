@@ -290,6 +290,44 @@ Tests live in `front/tests/` and use `MemoryRouter` to satisfy React Router's ro
 
 ---
 
+## Running E2E tests (Playwright)
+
+E2E tests are **not part of the CI pipeline** — run them manually before committing significant UI changes.
+
+They require both the backend and frontend dev server to be running simultaneously.
+
+### 1. Start the backend
+
+```bash
+cd back
+npm run dev
+```
+
+### 2. Start the frontend (separate terminal)
+
+```bash
+cd front
+npm run dev
+```
+
+### 3. Run the tests (third terminal)
+
+```bash
+cd front
+npm run test:e2e
+```
+
+### View the last test report
+
+```bash
+cd front
+npm run test:report
+```
+
+Test files live in `front/tests/e2e/` and cover navigation, home page, and the wine catalogue.
+
+---
+
 ## Deployment
 
 Live at **https://knowwine-ai.onrender.com/**
