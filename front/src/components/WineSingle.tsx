@@ -10,7 +10,6 @@ type Wine = {
 };
 interface WineProps {
   wine: Wine | null | undefined;
-  id: number | undefined;
 }
 
 const WineSingle = ({ wine }: WineProps) => {

@@ -3,8 +3,18 @@ import { Link } from 'react-router-dom';
 import myWineService from '../services/myWines';
 import userService from '../services/users';
 import loginService from '../services/login';
-import LoginForm from './LoginForm';
-import Toggable from './Toggable';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+} from '@mui/material';
+
+//import LoginForm from './LoginForm';
+//import Toggable from './Toggable';
 //import winesListService from '../services/WinesList';
 //import MyWineForm from './MyWineForm';
 
@@ -93,6 +103,7 @@ const WineList = ({ wineList }: WineListProps) => {
   return (
     <div>
       <h2>Search wines</h2>
+
       <div className="search-container">
         <input type="text" placeholder="Search.." value={searched} onChange={handleSearch} />
       </div>
@@ -113,17 +124,31 @@ const WineList = ({ wineList }: WineListProps) => {
 
       <div className="search-container">
         <h2>Wines</h2>
-        <ul>
-          {wineList.map((wine: Wine) => (
-            <li className="favourite-item" key={wine.id}>
-              <Link to={`/wines/${wine.id}`}>
-                <strong>
-                  {wine.display_name}, {wine.type} , {wine.sub_type}{' '}
-                </strong>
-              </Link>
-            </li>
-          ))}
-        </ul>
+
+        <TableContainer component={Paper} sx={{ backgroundColor: '#000', color: '#fff' }}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell sx={{ color: '#fff' }}>Name</TableCell>
+                <TableCell sx={{ color: '#fff' }}>Type</TableCell>
+                <TableCell sx={{ color: '#fff' }}>Subtype</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {wineList.map((wine: Wine) => (
+                <TableRow key={wine.id}>
+                  <TableCell>
+                    <Link to={`/wines/${wine.id}`}>
+                      <strong>{wine.display_name}</strong>
+                    </Link>
+                  </TableCell>
+                  <TableCell sx={{ color: '#fff' }}>{wine.type}</TableCell>
+                  <TableCell sx={{ color: '#fff' }}>{wine.sub_type}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
       </div>
 
       {error && <div className="error">{error}</div>}

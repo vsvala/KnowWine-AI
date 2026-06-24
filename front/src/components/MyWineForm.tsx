@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { TextField, Button } from '@mui/material';
 
 type Wine = {
   id: number;
@@ -39,9 +40,8 @@ const MyWineForm = ({ addWine }: MyWineFormProps) => {
   };
 
   return (
-    <div>
+    <div className="wine-form-container">
       <h2>Add your wines</h2>
-
       <form onSubmit={submitWine} className="wine-form">
         <div>
           <label>
@@ -50,12 +50,28 @@ const MyWineForm = ({ addWine }: MyWineFormProps) => {
           </label>
         </div>
         <div>
-          <label>
+          <TextField
+            label="Description"
+            value={description}
+            onChange={handleDescriptionChange}
+            sx={{
+              '& .MuiInputBase-root': { backgroundColor: '#333' },
+              '& .MuiInputLabel-root': { color: '#aaa' },
+              '& .MuiInputBase-input': { color: '#fff' },
+            }}
+          />
+          {/* <label>
             Description
             <input value={description} onChange={handleDescriptionChange} />
-          </label>
+          </label> */}
         </div>
-        <button type="submit">Save</button>
+        <Button
+          type="submit"
+          variant="contained"
+          style={{ marginTop: 10, backgroundColor: '#c947d0' }}
+        >
+          Save
+        </Button>
       </form>
     </div>
   );

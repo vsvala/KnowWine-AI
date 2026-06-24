@@ -15,6 +15,8 @@ import WineList from './components/WineList';
 import MyWine from './components/MyWine';
 import Home from './components/Home';
 import LoginForm from './components/LoginForm';
+import { Container, AppBar, Toolbar, Button } from '@mui/material';
+import Notification from './components/Notification';
 
 // curl http://localhost:3001/api/users
 // TODO aDD to favourotes list (wine) after search... changing importannce  2
@@ -47,7 +49,8 @@ const App = () => {
   const [wines, setWines] = useState<Wine[]>([]);
   const [error, setError] = useState('');
   const [wineList, setWineList] = useState<WineLi[]>([]);
-  const [user, setUser] = useState('');
+  const [user, setUser] = useState<User | null>(null);
+  const [notification, setNotification] = useState<string | null>(null);
 
   //const wineFormRef = useRef();
 
@@ -108,6 +111,10 @@ const App = () => {
       .then((returnedWine) => {
         setWines((prev) => prev.concat(returnedWine));
         setError('');
+        setNotification({ text: `Wine '${returnedWine.display_name}' added!`, type: 'success' });
+        setTimeout(() => {
+          setNotification(null);
+        }, 5000);
       })
       .catch((err) => {
         const message = err.response?.data?.error ?? 'Error adding item';
@@ -150,7 +157,7 @@ const App = () => {
   const handleLogout = () => {
     window.localStorage.removeItem('loggedWineappUser');
     myWineService.setToken('');
-    setUser('');
+    setUser(null);
   };
 
   const padding = {
@@ -158,46 +165,71 @@ const App = () => {
   };
 
   const match = useMatch('/mywines/:id');
-  const wine = match ? wines.find((wine) => wine.id === Number(match.params.id)) : null;
+  const wine = match ? wines.find((w) => w.id === Number(match.params.id)) : null;
+
+  const wineListMatch = useMatch('/wines/:id');
+  const wineListItem = wineListMatch
+    ? wineList.find((w) => w.id === Number(wineListMatch.params.id))
+    : null;
+
+  const style = { '&:hover': { bgcolor: 'rgba(255,255,255,0.3)' } };
 
   return (
+    //sx is MUI's styling prop a shortcut for inline styles
+
     <div>
-      <Link style={padding} to="/">
-        home
-      </Link>
-      <Link style={padding} to="/wines">
-        Wines
-      </Link>
-      <Link style={padding} to="/mywines">
-        MyWines
-      </Link>
-      <Link style={padding} to="/addwine">
-        Add Wine
-      </Link>
-      {user ? (
-        <button onClick={handleLogout}>Log out ({user.name})</button>
-      ) : (
-        <Link style={padding} to="/login">
-          Login
-        </Link>
-      )}
+      <AppBar position="static" sx={{ backgroundColor: '#57244d', width: '100%' }}>
+        <Toolbar sx={{ padding: 'auto', textAlign: 'center', justifyContent: 'center' }}>
+          <Button color="inherit" component={Link} to="/" sx={style}>
+            Home
+          </Button>
+          <Button color="inherit" component={Link} to="/wines" sx={style}>
+            Wines
+          </Button>
+          {user ? (
+            <Button color="inherit" component={Link} to="/mywines" sx={style}>
+              {' '}
+              MyWines
+            </Button>
+          ) : (
+            ''
+          )}
+          {user ? (
+            <Button color="inherit" component={Link} to="/addwine" sx={style}>
+              Add Wine
+            </Button>
+          ) : (
+            ''
+          )}
+          <Button color="inherit">
+            {user ? (
+              <button onClick={handleLogout}>Log out ({user.name})</button>
+            ) : (
+              <Link style={padding} to="/login">
+                Login
+              </Link>
+            )}
+          </Button>
+        </Toolbar>
+      </AppBar>
+      <Container sx={{ padding: '30px; 0px ' }}>
+        <Notification notification={notification} />
 
-      <Routes>
-        <Route path="/wines/:id" element={<WineSingle wine={wine} />} />
-        <Route
-          path="/mywines/:id"
-          element={<MyWine id={wine?.id} wine={wine} deleteWine={deleteWine} />}
-        />
-        <Route path="/mywines" element={<MyWines wines={wines} deleteWine={deleteWine} />} />
-        <Route path="/wines" element={<WineList wineList={wineList} />} />
-        <Route path="/addwine" element={<MyWineForm addWine={addWine} />} />
-        <Route path="/" element={<Home />} />
-        <Route path="/login" element={<LoginForm login={login} />} />
-      </Routes>
-
+        <Routes>
+          <Route path="/wines/:id" element={<WineSingle wine={wineListItem} />} />
+          <Route
+            path="/mywines/:id"
+            element={<MyWine id={wine?.id} wine={wine} deleteWine={deleteWine} />}
+          />
+          <Route path="/mywines" element={<MyWines wines={wines} deleteWine={deleteWine} />} />
+          <Route path="/wines" element={<WineList wineList={wineList} />} />
+          <Route path="/addwine" element={<MyWineForm addWine={addWine} />} />
+          <Route path="/" element={<Home />} />
+          <Route path="/login" element={<LoginForm login={login} />} />
+        </Routes>
+      </Container>
       <Footer />
     </div>
-
     //   <h2>Search wines</h2>
     //   <div className="search-container">
     //     <input type="text" placeholder="Search.." value={searched} onChange={handleSearch} />
