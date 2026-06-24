@@ -1,6 +1,7 @@
 const { test, after, before, beforeEach, describe } = require('node:test');
 const assert = require('node:assert');
 const supertest = require('supertest');
+const jwt = require('jsonwebtoken');
 const app = require('../app');
 const { pool, connectToDatabase } = require('../utils/db');
 const helper = require('./test_helper');
@@ -8,6 +9,7 @@ const helper = require('./test_helper');
 const api = supertest(app);
 
 let testUserId;
+let token;
 
 before(async () => {
   await connectToDatabase();
@@ -22,6 +24,7 @@ beforeEach(async () => {
     ['TestUser', 'testuser', 'hashedpassword']
   );
   testUserId = userResult.rows[0].id;
+  token = jwt.sign({ username: 'testuser', id: testUserId }, process.env.SECRET);
 
   for (const wine of helper.initialWines) {
     await pool.query('INSERT INTO my_wines(name, description) VALUES ($1, $2)', [
@@ -69,11 +72,11 @@ describe('POST /api/mywines', () => {
     const newWine = {
       name: 'Rioja',
       description: 'A Spanish red wine with oak aging',
-      userId: testUserId,
     };
 
     await api
       .post('/api/mywines')
+      .set('Authorization', `Bearer ${token}`)
       .send(newWine)
       .expect(201)
       .expect('Content-Type', /application\/json/);
@@ -89,10 +92,13 @@ describe('POST /api/mywines', () => {
     const newWine = {
       name: 'X',
       description: 'A Spanish red wine with oak aging',
-      userId: testUserId,
     };
 
-    await api.post('/api/mywines').send(newWine).expect(400);
+    await api
+      .post('/api/mywines')
+      .set('Authorization', `Bearer ${token}`)
+      .send(newWine)
+      .expect(400);
 
     const winesAtEnd = await helper.winesInDb();
     assert.strictEqual(winesAtEnd.length, helper.initialWines.length);
@@ -102,16 +108,19 @@ describe('POST /api/mywines', () => {
     const duplicate = {
       name: 'Barolo',
       description: 'Another description here',
-      userId: testUserId,
     };
 
-    await api.post('/api/mywines').send(duplicate).expect(400);
+    await api
+      .post('/api/mywines')
+      .set('Authorization', `Bearer ${token}`)
+      .send(duplicate)
+      .expect(400);
   });
 
-  test('missing userId is rejected', async () => {
+  test('request without token is rejected', async () => {
     const newWine = { name: 'Rioja', description: 'A Spanish red wine with oak aging' };
 
-    await api.post('/api/mywines').send(newWine).expect(400);
+    await api.post('/api/mywines').send(newWine).expect(401);
   });
 });
 
