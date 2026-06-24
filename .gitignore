@@ -3,3 +3,5 @@ node_modules
 build
 .DS_Store
 production.md
+.playwright-mcp
+front/test-results

@@ -68,6 +68,10 @@ jobs:
         run: npm test
         working-directory: front
 
+      # E2E-testit (Playwright) vaativat käynnissä olevan backend+frontend-palvelimen
+      # ja aiheuttavat versiokonflikteja CI:ssä — ajetaan vain lokaalisti:
+      #   cd front && npm run test:e2e
+
   # ============================================================
   # JOB 2: DEPLOY
   # Ajetaan VAIN jos testit menivät läpi JA push oli masteriin
