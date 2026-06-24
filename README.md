@@ -23,6 +23,88 @@ A web app for discovering and managing wines. Browse a wine catalogue from the G
 | Auth     | JWT (`jsonwebtoken`), bcrypt                   |
 | Deploy   | Render.com (backend serves the built frontend) |
 
+## Architecture
+
+### System overview
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                        Browser                          │
+│              React 19 + TypeScript (Vite)               │
+│         http://localhost:5173 / onrender.com            │
+└──────────────────────┬──────────────────────────────────┘
+                       │ HTTP /api/*
+                       ▼
+┌─────────────────────────────────────────────────────────┐
+│                   Express 5 (Node 22)                   │
+│                  http://localhost:3001                   │
+│                                                         │
+│  POST /api/login     → JWT sign                         │
+│  GET  /api/wines     → Redis cache → GrapeMinds API     │
+│  GET  /api/mywines   → PostgreSQL                       │
+│  POST /api/mywines   → JWT verify → PostgreSQL          │
+└───────┬─────────────────────┬───────────────────────────┘
+        │                     │
+        ▼                     ▼
+┌───────────────┐    ┌────────────────┐    ┌─────────────────────┐
+│  PostgreSQL   │    │  Redis         │    │  GrapeMinds API     │
+│  (Aiven)      │    │  (Upstash)     │───►│  api.grapeminds.eu  │
+│               │    │                │    │                     │
+│  users        │    │  grapeminds:   │    │  GET /wines         │
+│  my_wines     │    │  wines (60d)   │    │  (wine catalogue)   │
+└───────────────┘    └────────────────┘    └─────────────────────┘
+```
+
+In **development** the frontend dev server (port 5173) proxies `/api/*` to the backend (port 3001). In **production** the backend serves the built frontend as static files from `back/dist`.
+
+### Data model
+
+```
+users
+├── id            SERIAL PRIMARY KEY
+├── name          TEXT NOT NULL (min 2 chars)
+├── username      TEXT NOT NULL UNIQUE (min 3 chars)
+├── password_hash TEXT NOT NULL  ← bcrypt, 10 rounds
+└── date          TIMESTAMP
+
+my_wines
+├── id            SERIAL PRIMARY KEY
+├── name          TEXT NOT NULL UNIQUE (min 2 chars)
+├── description   TEXT NOT NULL (min 10 chars)
+├── user_id       INTEGER → users(id)
+└── date          TIMESTAMP
+```
+
+### Authentication flow
+
+```
+1. POST /api/login  { username, password }
+        │
+        ├── Look up user by username
+        ├── bcrypt.compare(password, password_hash)
+        └── jwt.sign({ id, username }, SECRET, { expiresIn: '1h' })
+                │
+                ▼
+        { token, username, name }  → stored in localStorage
+
+2. POST /api/mywines  Authorization: Bearer <token>
+        │
+        ├── jwt.verify(token, SECRET)  → { id, username }
+        ├── Look up user by id
+        ├── Validate name + description
+        └── INSERT INTO my_wines
+```
+
+### Environment matrix
+
+| | `development` | `test` | `production` |
+| --- | --- | --- | --- |
+| Wine data source | `wines.json` (local) | `wines.json` (local) | GrapeMinds API + Redis |
+| Database | localhost:5432 | localhost:5433 (Docker) | Aiven PostgreSQL |
+| Redis | not used | not used | Upstash |
+| Rate limit | 500 req/15 min | 500 req/15 min | 50 req/15 min |
+| DB SSL | off | off | on |
+
 ## Project structure
 
 ```
