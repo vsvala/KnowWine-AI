@@ -21,12 +21,18 @@ const initDb = async () => {
     );
     CREATE TABLE IF NOT EXISTS my_wines (
       id SERIAL PRIMARY KEY,
-      name TEXT NOT NULL CHECK (LENGTH(name) >= 2),
+      name TEXT NOT NULL UNIQUE CHECK (LENGTH(name) >= 2),
       description TEXT NOT NULL CHECK (LENGTH(description) >= 5),
       user_id INTEGER REFERENCES users(id),
       date TIMESTAMP
     );
     ALTER TABLE my_wines ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES users(id);
+  `);
+  await pool.query(`
+    DO $$ BEGIN
+      ALTER TABLE my_wines ADD CONSTRAINT my_wines_name_key UNIQUE (name);
+    EXCEPTION WHEN duplicate_table OR sqlstate '42P07' THEN NULL;
+    END $$;
   `);
 };
 

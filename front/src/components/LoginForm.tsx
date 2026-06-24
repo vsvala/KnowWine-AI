@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 
 interface LoginFormProps {
   login: (username: string, password: string) => Promise<void>;
@@ -9,15 +8,12 @@ const LoginForm = ({ login }: LoginFormProps) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
 
-  const navigate = useNavigate();
-
   const handleLogin = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e?.preventDefault();
     console.log('loggin with ', username, password);
     login(username, password);
     setUsername('');
     setPassword('');
-    navigate('/mywines');
   };
 
   const handlePWChange = (e: React.ChangeEvent<HTMLInputElement>) => {

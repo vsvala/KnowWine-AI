@@ -3,19 +3,18 @@ name: CI/CD Pipeline
 # ── MILLOIN PIPELINE KÄYNNISTYY ──────────────────────────────────────────────
 on:
   push:
-    branches: [master]       # jokainen push masteriin käynnistää pipelinen
+    branches: [master] # jokainen push masteriin käynnistää pipelinen
   pull_request:
-    branches: [master]       # myös PR masteriin käynnistää testit (deploy ei aja)
+    branches: [master] # myös PR masteriin käynnistää testit (deploy ei aja)
 
 # ── TYÖT ─────────────────────────────────────────────────────────────────────
 jobs:
-
   # ============================================================
   # JOB 1: TESTIT
   # Ajaa backend- ja frontend-testit eristettynä ympäristössä
   # ============================================================
   test:
-    runs-on: ubuntu-latest   # GitHub tarjoaa ilmaisen Ubuntu-virtuaalikoneen
+    runs-on: ubuntu-latest # GitHub tarjoaa ilmaisen Ubuntu-virtuaalikoneen
 
     # Käynnistää PostgreSQL-kontin testiä varten (sama kuin paikallinen docker-kontti)
     services:
@@ -26,7 +25,7 @@ jobs:
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: knowwine_test
         ports:
-          - 5433:5432        # host:5433 → kontti:5432 (sama kuin lokaali testaus)
+          - 5433:5432 # host:5433 → kontti:5432 (sama kuin lokaali testaus)
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -36,11 +35,11 @@ jobs:
     steps:
       # 1. Hakee koodin GitHubista virtuaalikoneelle
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.2.2
 
       # 2. Asentaa Node.js:n (versio 22, sama kuin lokaalisti)
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v4.4.0
         with:
           node-version: '22'
 
@@ -74,7 +73,7 @@ jobs:
   # Ajetaan VAIN jos testit menivät läpi JA push oli masteriin
   # ============================================================
   deploy:
-    needs: test              # odottaa että "test"-job onnistuu ennen kuin alkaa
+    needs: test # odottaa että "test"-job onnistuu ennen kuin alkaa
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/master' && github.event_name == 'push'
 

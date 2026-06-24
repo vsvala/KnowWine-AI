@@ -17,6 +17,7 @@ import Home from './components/Home';
 import LoginForm from './components/LoginForm';
 import { Container, AppBar, Toolbar, Button } from '@mui/material';
 import Notification from './components/Notification';
+import { useNavigate } from 'react-router-dom';
 
 // curl http://localhost:3001/api/users
 // TODO aDD to favourotes list (wine) after search... changing importannce  2
@@ -49,7 +50,10 @@ const App = () => {
   const [wines, setWines] = useState<Wine[]>([]);
   const [wineList, setWineList] = useState<WineLi[]>([]);
   const [user, setUser] = useState<User | null>(null);
-  const [notification, setNotification] = useState<{ text: string; type: 'success' | 'error' | 'info' | 'warning' } | null>(null);
+  const [notification, setNotification] = useState<{
+    text: string;
+    type: 'success' | 'error' | 'info' | 'warning';
+  } | null>(null);
 
   //const wineFormRef = useRef();
 
@@ -136,6 +140,8 @@ const App = () => {
       });
   };
 
+  const navigate = useNavigate();
+
   const login = async (username: string, password: string) => {
     console.log('loggin with ', username, password);
     try {
@@ -143,11 +149,13 @@ const App = () => {
       window.localStorage.setItem('loggedWineappUser', JSON.stringify(user));
       myWineService.setToken(user.token);
       setUser(user);
+      navigate('/mywines');
     } catch (error) {
       console.log('error submitting', error);
+      setNotification({ text: 'Wrong username or password', type: 'error' });
       //setErrorMessage('wrong credentials');
       setTimeout(() => {
-        //setErrorMessage(null);
+        setNotification(null);
       }, 5000);
     }
   };
@@ -222,7 +230,10 @@ const App = () => {
           <Route path="/wines" element={<WineList wineList={wineList} />} />
           <Route path="/addwine" element={<MyWineForm addWine={addWine} />} />
           <Route path="/" element={<Home />} />
-          <Route path="/login" element={<LoginForm login={login} />} />
+          <Route
+            path="/login"
+            element={<LoginForm login={login} setNotification={setNotification} />}
+          />
         </Routes>
       </Container>
       <Footer />
