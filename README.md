@@ -10,14 +10,67 @@ A web app for discovering and managing wines. Browse a wine catalogue from the G
 - User registration with input validation
 - Rate limiting and request size limits on the backend
 
+## Production
+
+**Live app:** https://knowwine-ai.onrender.com/
+
+| Service  | Provider                                        |
+| -------- | ----------------------------------------------- |
+| Hosting  | [Render.com](https://render.com) (Web Service)  |
+| Database | [Aiven](https://aiven.io) – PostgreSQL          |
+| Cache    | [Upstash](https://upstash.com) – Redis          |
+
+## CI/CD pipeline
+
+Every push to `master` triggers the pipeline defined in `.github/workflows/pipeline.yml`.
+
+```
+git push master
+    │
+    ├── GitHub Actions: run tests
+    │     ├── Backend integration tests  (node:test + supertest + PostgreSQL container)
+    │     └── Frontend unit tests        (Vitest)
+    │
+    ├── [tests pass] ──► curl Render deploy hook ──► Render builds & deploys
+    └── [tests fail] ──► deploy blocked, production unchanged
+```
+
+Pull requests to `master` also run the tests, but never trigger a deploy.
+
+### How it works
+
+| Step | What happens |
+| --- | --- |
+| `actions/checkout@v4` | GitHub clones the repo onto a fresh Ubuntu VM |
+| `actions/setup-node@v4` | Installs Node.js 22 on the VM |
+| `services: postgres` | GitHub starts a PostgreSQL 16 Docker container alongside the VM on port 5433 |
+| `npm ci` | Installs exact dependency versions from `package-lock.json` |
+| `npm test` (back) | Runs integration tests against the temporary PostgreSQL container |
+| `npm test` (front) | Runs Vitest component tests (no server needed) |
+| `curl RENDER_DEPLOY_HOOK_URL` | Notifies Render to build and deploy the new code |
+
+The deploy step only runs when **all tests pass** and the event is a direct push to `master` (not a pull request).
+
+### Required setup
+
+**1. Disable Render auto-deploy**
+Render Dashboard → Settings → Auto-Deploy → **No**
+(otherwise Render deploys immediately on push, before tests have a chance to run)
+
+**2. Add Render Deploy Hook as a GitHub Secret**
+- Render Dashboard → Settings → Deploy Hook → copy the URL
+- GitHub repo → Settings → Secrets and variables → Actions → New repository secret
+  - Name: `RENDER_DEPLOY_HOOK_URL`
+  - Value: the copied URL
+
 ## Tech stack
 
 | Layer    | Technology                                     |
 | -------- | ---------------------------------------------- |
 | Frontend | React (TypeScript), Vite, Axios                |
 | Backend  | Node.js, Express 5                             |
-| Database | PostgreSQL                                     |
-| Cache    | Redis (ioredis) — production wine catalogue    |
+| Database | PostgreSQL (Aiven)                             |
+| Cache    | Redis (ioredis + Upstash) — production only    |
 | Auth     | JWT (`jsonwebtoken`), bcrypt                   |
 | Deploy   | render.com (backend serves the built frontend) |
 
@@ -182,7 +235,7 @@ In **production**, the `GET /api/wines` endpoint caches the GrapeMinds wine cata
 2. On subsequent requests the cached JSON is returned directly from Redis, with no external API call.
 3. After 60 days the key expires and the next request refreshes the cache from the API.
 
-The Redis client is configured in `back/utils/redis.js` using [ioredis](https://github.com/redis/ioredis). Connection is controlled by `REDIS_HOST` and `REDIS_PORT` environment variables (defaults: `localhost`, `6379`).
+The Redis client is configured in `back/utils/redis.js` using [ioredis](https://github.com/redis/ioredis). In production the connection is controlled by the `REDIS_URL` environment variable (Upstash). In local mode `REDIS_HOST` and `REDIS_PORT` are used instead (defaults: `localhost`, `6379`).
 
 ### Running Redis locally (production-mode testing only)
 
@@ -239,25 +292,84 @@ Tests live in `front/tests/` and use `MemoryRouter` to satisfy React Router's ro
 
 ## Deployment
 
-The backend serves the built frontend as static files from `back/dist`.
+Live at **https://knowwine-ai.onrender.com/**
 
-Build the frontend and deploy:
+The backend serves the built frontend as static files from `back/dist`. Both frontend and backend are deployed as a single Render Web Service.
+
+### Manual deploy (current workflow)
 
 ```bash
 cd back
 npm run build:ui    # builds front/dist and copies it to back/dist
-npm run deploy:full # build:ui + git commit + git push
+npm run deploy:full # build:ui + git add + git commit + git push
 ```
 
-Hosted on [render.com](https://render.com).
+Render detects the push and redeploys automatically.
+
+---
+
+### Setting up production from scratch
+
+#### 1. PostgreSQL – Aiven
+
+1. Create an account at [aiven.io](https://aiven.io) and create a free PostgreSQL service
+2. Copy the **Service URI** from the connection details — this is your `DATABASE_URL`
+3. Tables are created automatically on first backend start (`back/utils/db.js`)
+
+#### 2. Redis – Upstash
+
+1. Create an account at [upstash.com](https://upstash.com)
+2. Create a new Redis database (region closest to your Render region)
+3. Copy the **Redis URL** from the database details page — this is your `REDIS_URL`
+4. The wine catalogue is cached under the key `grapeminds:wines` with a 60-day TTL
+
+#### 3. Render – Web Service
+
+1. Create an account at [render.com](https://render.com)
+2. New → Web Service → connect your GitHub repository
+3. Set the following:
+
+| Setting | Value |
+| --- | --- |
+| Runtime | Node |
+| Build Command | `cd front && npm ci && npm run build && cd ../back && cp -r ../front/dist . && npm ci` |
+| Start Command | `node index.js` |
+| Root Directory | *(leave empty)* |
+
+4. Add environment variables under **Environment**:
+
+```
+NODE_ENV=production
+DATABASE_URL=<Aiven Service URI>
+DB_SSL=true
+SECRET=<a long random string, e.g. openssl rand -hex 32>
+GRAPEMINDS_URL=https://api.grapeminds.eu/public/v1
+GRAPEMINDS_API_KEY=<your GrapeMinds API key>
+REDIS_URL=<Upstash Redis URL>
+```
+
+5. Click **Deploy** — Render will build and start the app
+
+#### 4. Verify the deployment
+
+```bash
+# Health check — should return the wine catalogue JSON
+curl https://knowwine-ai.onrender.com/api/wines
+
+# Check Redis cache (from Upstash console → Data Browser → key: grapeminds:wines)
+```
+
+> **Note:** The free Render tier spins down after 15 minutes of inactivity. The first request after idle takes ~30 seconds to wake up.
 
 ---
 
 ## Todo
 
+- [ ] more wine parameters and more form fields for them
+- [ ] Filtering wines
 - [ ] User administration panel (admin)
 - [ ] Tests for frontend and end-to-end
-- [ ] Styles with Material UI
+- [ ] Styles
 
 - [ ] Second external wine API integration
 - [ ] Map of wine regions with pop-ups
@@ -268,6 +380,7 @@ Hosted on [render.com](https://render.com).
 
 ## Done
 
+- [x] Styles with Material UI
 - [x] Redis caching for wine catalogue (production, 60-day TTL, ioredis)
 - [x] Frontend component tests (Vitest + React Testing Library)
 - [x] External wine API integration (GrapeMinds)

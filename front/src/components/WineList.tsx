@@ -1,8 +1,6 @@
-import { useEffect, useState, type ChangeEvent } from 'react';
+import { useState, type ChangeEvent } from 'react';
 import { Link } from 'react-router-dom';
-import myWineService from '../services/myWines';
-import userService from '../services/users';
-import loginService from '../services/login';
+
 import {
   Table,
   TableBody,
@@ -28,62 +26,13 @@ type Wine = {
   producer: object;
   region: string | null;
 };
-type User = {
-  id: number;
-  name: string;
-  username: string;
-};
 
 interface WineListProps {
   wineList: Wine[];
 }
 
 const WineList = ({ wineList }: WineListProps) => {
-  const [users, setUsers] = useState<User[]>([]);
-  const [error, setError] = useState('');
-  const [user, setUser] = useState('');
   const [searched, setSearched] = useState('');
-
-  useEffect(() => {
-    console.log('effect');
-    userService
-      .getAll()
-      .then((initialUsers) => {
-        console.log('users from API:', initialUsers);
-        setUsers(initialUsers);
-      })
-      .catch((err) => {
-        console.error(err);
-        setError('Unable to load users');
-      });
-  }, []);
-  // console.log('render', items.length, 'items')
-
-  useEffect(() => {
-    const loggedUserJSON = window.localStorage.getItem('loggedWineappUser');
-    if (loggedUserJSON) {
-      const user = JSON.parse(loggedUserJSON);
-      console.log(user);
-      setUser(user);
-      myWineService.setToken(user.token);
-    }
-  }, []);
-
-  const login = async (username: string, password: string) => {
-    console.log('loggin with ', username, password);
-    try {
-      const user = await loginService.login({ username, password });
-      window.localStorage.setItem('loggedWineappUser', JSON.stringify(user));
-      myWineService.setToken(user.token);
-      setUser(user);
-    } catch (error) {
-      console.log('error submitting', error);
-      //setErrorMessage('wrong credentials');
-      setTimeout(() => {
-        //setErrorMessage(null);
-      }, 5000);
-    }
-  };
 
   const handleSearch = (e: ChangeEvent<HTMLInputElement>) => {
     setSearched(e.target.value);
@@ -151,7 +100,6 @@ const WineList = ({ wineList }: WineListProps) => {
         </TableContainer>
       </div>
 
-      {error && <div className="error">{error}</div>}
       <br />
     </div>
   );

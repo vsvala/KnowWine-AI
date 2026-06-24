@@ -16,6 +16,7 @@ const MyWine = ({ wine, id, deleteWine }: MyWinesProps) => {
   //const wine = wines.find((w) => w.id === id);
 
   const handleDelete = () => {
+    if (id === undefined) return;
     if (window.confirm(`Delete wine "${wine?.name}"?`)) {
       deleteWine(id);
       navigate('/mywines');

@@ -47,10 +47,9 @@ type User = {
 };
 const App = () => {
   const [wines, setWines] = useState<Wine[]>([]);
-  const [error, setError] = useState('');
   const [wineList, setWineList] = useState<WineLi[]>([]);
   const [user, setUser] = useState<User | null>(null);
-  const [notification, setNotification] = useState<string | null>(null);
+  const [notification, setNotification] = useState<{ text: string; type: 'success' | 'error' | 'info' | 'warning' } | null>(null);
 
   //const wineFormRef = useRef();
 
@@ -66,7 +65,7 @@ const App = () => {
         console.log('users from API:', initialUsers);
         setUser(initialUsers);
       })
-      .catch(() => setError('Unable to load items'));
+      .catch(() => setNotification({ text: 'Unable to load items', type: 'error' }));
     console.error('Error loading users');
   }, []);
   // console.log('render', items.length, 'items')
@@ -89,7 +88,7 @@ const App = () => {
       .then((initialMyWines) => {
         setWines(initialMyWines);
       })
-      .catch(() => setError('Unable to load wines'));
+      .catch(() => setNotification({ text: 'Unable to load wines', type: 'error' }));
   }, []);
 
   useEffect(() => {
@@ -100,7 +99,7 @@ const App = () => {
       .then((initialWineList) => {
         setWineList(initialWineList);
       })
-      .catch((err) => setError(err + 'Unable to load wineList'));
+      .catch(() => setNotification({ text: 'Unable to load wineList', type: 'error' }));
     //console.error(err));
   }, []);
 
@@ -110,7 +109,6 @@ const App = () => {
       .create(newWineObject)
       .then((returnedWine) => {
         setWines((prev) => prev.concat(returnedWine));
-        setError('');
         setNotification({ text: `Wine '${returnedWine.name}' added!`, type: 'success' });
         setTimeout(() => {
           setNotification(null);
@@ -118,8 +116,8 @@ const App = () => {
       })
       .catch((err) => {
         const message = err.response?.data?.error ?? 'Error adding item';
-        setError(message);
-        setTimeout(() => setError(''), 5000);
+        setNotification({ text: message, type: 'error' });
+        setTimeout(() => setNotification(null), 5000);
       });
   };
 
@@ -134,7 +132,7 @@ const App = () => {
         setWines((prev) => prev.filter((item) => item.id !== id));
       })
       .catch(() => {
-        setError('Error deleting item');
+        setNotification({ text: 'Error deleting item', type: 'error' });
       });
   };
 

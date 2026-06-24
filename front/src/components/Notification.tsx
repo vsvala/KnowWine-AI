@@ -1,6 +1,10 @@
 import { Alert } from '@mui/material';
 
-const Notification = ({ notification }) => {
+type NotificationProps = {
+  notification: { text: string; type: 'success' | 'error' | 'info' | 'warning' } | null;
+};
+
+const Notification = ({ notification }: NotificationProps) => {
   if (notification === null) {
     return null;
   }

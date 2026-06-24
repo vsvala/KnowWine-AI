@@ -1,0 +1,85 @@
+name: CI/CD Pipeline
+
+# ── MILLOIN PIPELINE KÄYNNISTYY ──────────────────────────────────────────────
+on:
+  push:
+    branches: [master]       # jokainen push masteriin käynnistää pipelinen
+  pull_request:
+    branches: [master]       # myös PR masteriin käynnistää testit (deploy ei aja)
+
+# ── TYÖT ─────────────────────────────────────────────────────────────────────
+jobs:
+
+  # ============================================================
+  # JOB 1: TESTIT
+  # Ajaa backend- ja frontend-testit eristettynä ympäristössä
+  # ============================================================
+  test:
+    runs-on: ubuntu-latest   # GitHub tarjoaa ilmaisen Ubuntu-virtuaalikoneen
+
+    # Käynnistää PostgreSQL-kontin testiä varten (sama kuin paikallinen docker-kontti)
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: knowwine_test
+        ports:
+          - 5433:5432        # host:5433 → kontti:5432 (sama kuin lokaali testaus)
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      # 1. Hakee koodin GitHubista virtuaalikoneelle
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2. Asentaa Node.js:n (versio 22, sama kuin lokaalisti)
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # 3. Asentaa backendin riippuvuudet
+      - name: Install backend dependencies
+        run: npm ci
+        working-directory: back
+
+      # 4. Ajaa backend-integraatiotestit
+      # NODE_ENV=test → käyttää TEST_DATABASE_URL:ia, ei Redisiä, ei GrapeMinds APIa
+      - name: Run backend tests
+        run: npm test
+        working-directory: back
+        env:
+          NODE_ENV: test
+          TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5433/knowwine_test
+          SECRET: test-secret-for-ci
+
+      # 5. Asentaa frontendin riippuvuudet
+      - name: Install frontend dependencies
+        run: npm ci
+        working-directory: front
+
+      # 6. Ajaa frontend-yksikkötestit (Vitest, ei tarvitse serveriä)
+      - name: Run frontend unit tests
+        run: npm test
+        working-directory: front
+
+  # ============================================================
+  # JOB 2: DEPLOY
+  # Ajetaan VAIN jos testit menivät läpi JA push oli masteriin
+  # ============================================================
+  deploy:
+    needs: test              # odottaa että "test"-job onnistuu ennen kuin alkaa
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+
+    steps:
+      # Lähettää HTTP POST -pyynnön Renderin deploy hook -osoitteeseen
+      # Render käynnistää uuden buildin ja deployn tämän perusteella
+      - name: Trigger Render deploy
+        run: curl --fail -X POST ${{ secrets.RENDER_DEPLOY_HOOK_URL }}

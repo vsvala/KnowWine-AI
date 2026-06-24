@@ -1,21 +1,14 @@
-import { useEffect, useState, type ChangeEvent } from 'react';
+import { useState, type ChangeEvent } from 'react';
 import { Link } from 'react-router-dom';
 //import myWineService from '../services/myWines';
 //import userService from '../services/users';
 //import loginService from '../services/login';
-import LoginForm from './LoginForm';
-import Toggable from './Toggable';
 //import MyWineForm from './MyWineForm';
 
 type Wine = {
   id: number;
   name: string;
   description: string;
-};
-type User = {
-  id: number;
-  name: string;
-  username: string;
 };
 
 interface MyWinesProps {
@@ -26,7 +19,6 @@ interface MyWinesProps {
 const MyWines = ({ wines }: MyWinesProps) => {
   //const [wines, setWines] = useState<Wine[]>([]);
   //const [users, setUsers] = useState<User[]>([]);
-  const [error, setError] = useState('');
   // const [user, setUser] = useState('');
   const [searched, setSearched] = useState('');
 
@@ -165,7 +157,6 @@ const MyWines = ({ wines }: MyWinesProps) => {
         </ul>
       </div>
 
-      {error && <div className="error">{error}</div>}
       {/* {user && myWineForm()} */}
       <br />
     </div>
