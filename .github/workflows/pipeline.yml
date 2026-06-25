@@ -72,6 +72,14 @@ jobs:
       # ja aiheuttavat versiokonflikteja CI:ssä — ajetaan vain lokaalisti:
       #   cd front && npm run test:e2e
 
+      # 6.Pipeline epäonnistuu vain High- tai Critical-tason haavoittuvuuksista.
+      - name: Security audit back
+        run: npm audit --audit-level=high
+        working-directory: back
+
+      - name: Security audit front
+        run: npm audit --audit-level=high
+        working-directory: front
   # ============================================================
   # JOB 2: DEPLOY
   # Ajetaan VAIN jos testit menivät läpi JA push oli masteriin
