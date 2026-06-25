@@ -153,7 +153,7 @@ jobs:
   deploy:
     needs: [test, e2e] # odottaa että "test"-job onnistuu ennen kuin alkaa
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+    if: github.ref == 'refs/heads/master' && github.event_name == 'push' && !contains(github.event.head_commit.message, '#skip')
 
     steps:
       # Lähettää HTTP POST -pyynnön Renderin deploy hook -osoitteeseen
@@ -164,8 +164,7 @@ jobs:
   tag_release:
     needs: [test, e2e, deploy]
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'push' }}
-
+    if: github.ref == 'refs/heads/master' && github.event_name == 'push' &&  !contains(github.event.head_commit.message, '#skip')
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
