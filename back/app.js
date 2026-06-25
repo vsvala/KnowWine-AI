@@ -82,6 +82,9 @@ app.get('/api/wines', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+app.get('/health', (req, res) => {
+  res.send('ok');
+});
 
 app.use(unknownEndpoint);
 app.use(errorHandler);
