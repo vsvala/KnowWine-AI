@@ -6,6 +6,7 @@ on:
     branches: [master] # jokainen push masteriin käynnistää pipelinen
   pull_request:
     branches: [master] # myös PR masteriin käynnistää testit (deploy ei aja)
+    types: [opened, synchronize]
 
 # ── TYÖT ─────────────────────────────────────────────────────────────────────
 jobs:
@@ -159,3 +160,14 @@ jobs:
       # Render käynnistää uuden buildin ja deployn tämän perusteella
       - name: Trigger Render deploy
         run: curl --fail -X POST ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+
+  tag_release:
+    needs: [test, e2e, deploy]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Bump version and push tag
+        uses: anothrNick/github-tag-action@1.75.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEFAULT_BUMP: patch
