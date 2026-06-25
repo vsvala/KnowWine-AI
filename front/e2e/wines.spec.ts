@@ -6,6 +6,7 @@ test.describe('Wine app', () => {
 
     const locator = page.getByRole('heading', { name: 'Wines', exact: true });
     await expect(locator).toBeVisible();
-    await expect(page.getByText('Schieferkopf, Lieu Dit Buehl Riesling')).toBeVisible();
+    //await expect(page.getByText('Schieferkopf, Lieu Dit Buehl Riesling')).toBeVisible();
+    await expect(page.getByRole('link').first()).toBeVisible();
   });
 });

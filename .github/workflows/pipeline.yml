@@ -129,6 +129,9 @@ jobs:
           TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5433/knowwine_test
           SECRET: test-secret-for-ci
           PORT: 3001
+      #wait-on on npm-paketti joka pollaa URL:ia kunnes se vastaa — ei asennusta npx hakee sen automaattisesti
+      - name: Wait for backend to be ready
+        run: px wait-on http://localhost:3001/api/wines ---timeout 30000
 
       - name: Install frontend dependencies
         run: npm ci
