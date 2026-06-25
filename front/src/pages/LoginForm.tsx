@@ -10,7 +10,6 @@ const LoginForm = ({ login }: LoginFormProps) => {
 
   const handleLogin = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e?.preventDefault();
-    console.log('loggin with ', username, password);
     login(username, password);
     setUsername('');
     setPassword('');
@@ -18,12 +17,10 @@ const LoginForm = ({ login }: LoginFormProps) => {
 
   const handlePWChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setPassword(e.target.value);
-    console.log(password);
   };
 
   const handleUNChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setUsername(e.target.value);
-    console.log(username);
   };
 
   return (

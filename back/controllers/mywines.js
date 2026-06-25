@@ -82,6 +82,22 @@ router.delete('/:id', async (req, res, next) => {
     if (Number.isNaN(id)) {
       return res.status(400).json({ error: 'Invalid ID' });
     }
+    const decodedToken = jwt.verify(getTokenFrom(req), process.env.SECRET);
+    if (!decodedToken.id) {
+      return res.status(401).json({ error: 'token invalid' });
+    }
+    const user = await User.getById(decodedToken.id);
+
+    if (!user) {
+      return res.status(401).json({ error: 'token invalid' });
+    }
+    const wine = await mywineModel.getById(id);
+    if (!wine) {
+      return res.status(404).json({ error: 'wine not found' });
+    }
+    if (wine.user_id !== user.id) {
+      return res.status(403).json({ error: 'not authorized' });
+    }
     await mywineModel.deleteById(id);
     res.status(204).end();
   } catch (error) {

@@ -7,14 +7,14 @@ import wineListService from './services/wineList';
 
 import { Routes, Route, Link, useMatch } from 'react-router-dom';
 import Footer from './components/Footer';
-import MyWineForm from './components/MyWineForm';
-import MyWines from './components/MyWines';
+import MyWineForm from './pages/MyWineForm';
+import MyWines from './pages/MyWines';
 import WineSingle from './components/WineSingle';
 
-import WineList from './components/WineList';
+import WineList from './pages/WineList';
 import MyWine from './components/MyWine';
-import Home from './components/Home';
-import LoginForm from './components/LoginForm';
+import Home from './pages/Home';
+import LoginForm from './pages/LoginForm';
 import { Container, AppBar, Toolbar, Button } from '@mui/material';
 import Notification from './components/Notification';
 import { useNavigate } from 'react-router-dom';
@@ -62,26 +62,26 @@ const App = () => {
   // Runs once because the dependency array is empty (`[]`).
 
   useEffect(() => {
-    console.log('effect');
+    console.log('useeffect get all users');
     userService
       .getAll()
       .then((initialUsers) => {
-        console.log('users from API:', initialUsers);
         setUser(initialUsers);
       })
-      .catch(() => setNotification({ text: 'Unable to load items', type: 'error' }));
-    console.error('Error loading users');
+      .catch(() => {
+        console.error('Error loading users');
+        setNotification({ text: 'Unable to load users', type: 'error' });
+      });
   }, []);
   // console.log('render', items.length, 'items')
 
   useEffect(() => {
     const loggedUserJSON = window.localStorage.getItem('loggedWineappUser');
     if (loggedUserJSON) {
-      const user = JSON.parse(loggedUserJSON);
-      console.log(user);
+      const loggedUser = JSON.parse(loggedUserJSON);
       // eslint-disable-next-line react-hooks/exhaustive-deps
-      setUser(user);
-      myWineService.setToken(user.token);
+      setUser(loggedUser);
+      myWineService.setToken(loggedUser.token);
     }
   }, []);
 

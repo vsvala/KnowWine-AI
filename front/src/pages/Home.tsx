@@ -19,11 +19,11 @@ const Home = () => {
       map.setProjection({ type: 'globe' });
       map.setSky({
         'sky-color': '#0000ff',
-        'sky-horizon-blend': 5,
+        'sky-horizon-blend': 1,
         'horizon-color': '#ffffff',
-        'horizon-fog-blend': 10,
+        'horizon-fog-blend': 1,
         'fog-color': '#808080',
-        'fog-ground-blend': 20,
+        'fog-ground-blend': 1,
       } as maplibregl.SkySpecification);
     });
 

@@ -1,6 +1,8 @@
 const usersRouter = require('express').Router();
 const userModel = require('../models/user');
 const bcrypt = require('bcrypt');
+const User = require('../models/user');
+const jwt = require('jsonwebtoken');
 
 usersRouter.get('/', async (req, res, next) => {
   try {
@@ -33,6 +35,15 @@ usersRouter.delete('/:id', async (req, res, next) => {
     if (Number.isNaN(id)) {
       return res.status(400).json({ error: 'Invalid ID' });
     }
+    const decodedToken = jwt.verify(getTokenFrom(req), process.env.SECRET);
+    if (!decodedToken.id) {
+      return res.status(401).json({ error: 'token invalid' });
+    }
+    const user = await User.getById(decodedToken.id);
+
+    if (!user) {
+      return res.status(401).json({ error: 'token invalid' });
+    }
     await userModel.deleteById(id);
     res.status(204).end();
   } catch (error) {
@@ -51,7 +62,9 @@ usersRouter.post('/', async (req, res, next) => {
       return res.status(400).json({ error: 'username must be at least 3 characters' });
     }
     if (!/^[a-zA-Z0-9_]+$/.test(username)) {
-      return res.status(400).json({ error: 'username may only contain letters, numbers, and underscores' });
+      return res
+        .status(400)
+        .json({ error: 'username may only contain letters, numbers, and underscores' });
     }
     if (!password || password.length < 8) {
       return res.status(400).json({ error: 'password must be at least 8 characters' });
