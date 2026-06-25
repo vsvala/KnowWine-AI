@@ -164,6 +164,7 @@ jobs:
   tag_release:
     needs: [test, e2e, deploy]
     runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'push' }}
 
     steps:
       - name: Checkout code
