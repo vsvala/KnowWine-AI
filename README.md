@@ -430,7 +430,8 @@ REDIS_URL=<Upstash Redis URL>
 
 ## Done
 
-- [x] add playright to github CI/CD pipeline to run as parallel job
+- [x] refining github CI/CD pipeline to have version release tags and option to skip deployment and tags
+- [x] Add playright e2e tests to github CI/CD pipeline to run as parallel job
 - [x] protect protect the main branch in a GitHub repository
 - [x] CI/CD pipeline (GitHub Actions → Render deploy hook)
 - [x] Styles with Material UI
