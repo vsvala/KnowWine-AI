@@ -122,7 +122,7 @@ jobs:
         working-directory: back
 
       - name: Start backend
-        run: npm start &
+        run: npm start:test &
         working-directory: back
         env:
           NODE_ENV: test

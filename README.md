@@ -416,10 +416,8 @@ REDIS_URL=<Upstash Redis URL>
 
 ## Todo
 
-- [ ] protect protect the main branch in a GitHub repository
-- [ ] add playright to github CI/CD pipelie
 - [ ] Adding more parameters for wines (year, grapes etc)
-- [ ] Updating wine psrameters and descriptions..
+- [ ] Updating wine parameters and descriptions..
 - [ ] Filtering wines
 - [ ] User administration panel (admin)
 - [ ] Second external wine API integration
@@ -431,6 +429,7 @@ REDIS_URL=<Upstash Redis URL>
 
 ## Done
 
+- [x] add playright to github CI/CD pipeline to run as parallel job
 - [x] protect protect the main branch in a GitHub repository
 - [x] CI/CD pipeline (GitHub Actions → Render deploy hook)
 - [x] Styles with Material UI
