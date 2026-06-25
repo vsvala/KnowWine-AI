@@ -122,10 +122,9 @@ jobs:
         working-directory: back
 
       - name: Start backend
-        run: npm start:test &
+        run: npm run start:test &
         working-directory: back
         env:
-          NODE_ENV: test
           TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5433/knowwine_test
           SECRET: test-secret-for-ci
           PORT: 3001
