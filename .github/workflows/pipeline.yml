@@ -52,10 +52,6 @@ jobs:
         run: npm run lint
         working-directory: back
 
-      - name: Check style front
-        run: npm run lint
-        working-directory: front
-
       # 4. Ajaa backend-integraatiotestit
       # NODE_ENV=test → käyttää TEST_DATABASE_URL:ia, ei Redisiä, ei GrapeMinds APIa
       - name: Run backend tests
@@ -69,6 +65,10 @@ jobs:
       # 5. Asentaa frontendin riippuvuudet
       - name: Install frontend dependencies
         run: npm ci
+        working-directory: front
+
+      - name: Check style front
+        run: npm run lint
         working-directory: front
 
       # 6. Ajaa frontend-yksikkötestit (Vitest, ei tarvitse serveriä)
