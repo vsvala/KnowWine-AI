@@ -416,6 +416,7 @@ REDIS_URL=<Upstash Redis URL>
 
 ## Todo
 
+- testing skipping
 - [ ] Adding more parameters for wines (year, grapes etc)
 - [ ] Updating wine parameters and descriptions..
 - [ ] Filtering wines
