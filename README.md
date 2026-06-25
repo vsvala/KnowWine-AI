@@ -1,6 +1,6 @@
 # KnowWine AI
 
-A web app for discovering and managing wines. Browse a wine catalogue from the GrapeMinds API, and keep a personal list of your favourite wines.
+Personal project: A full-stack CRUD web app for wine discovery and personal wine management, powered by the GrapeMinds API. Discove and manage wines. Browse a wine catalogue from the GrapeMinds API, and keep a personal list of your favourite wines.
 
 **Live app:** https://knowwine-ai.onrender.com/
 
@@ -97,13 +97,13 @@ my_wines
 
 ### Environment matrix
 
-| | `development` | `test` | `production` |
-| --- | --- | --- | --- |
-| Wine data source | `wines.json` (local) | `wines.json` (local) | GrapeMinds API + Redis |
-| Database | localhost:5432 | localhost:5433 (Docker) | Aiven PostgreSQL |
-| Redis | not used | not used | Upstash |
-| Rate limit | 500 req/15 min | 500 req/15 min | 50 req/15 min |
-| DB SSL | off | off | on |
+|                  | `development`        | `test`                  | `production`           |
+| ---------------- | -------------------- | ----------------------- | ---------------------- |
+| Wine data source | `wines.json` (local) | `wines.json` (local)    | GrapeMinds API + Redis |
+| Database         | localhost:5432       | localhost:5433 (Docker) | Aiven PostgreSQL       |
+| Redis            | not used             | not used                | Upstash                |
+| Rate limit       | 500 req/15 min       | 500 req/15 min          | 50 req/15 min          |
+| DB SSL           | off                  | off                     | on                     |
 
 ## Project structure
 
@@ -336,11 +336,11 @@ docker exec -it knowwine-redis redis-cli
 
 ### Production services
 
-| Service  | Provider                                        |
-| -------- | ----------------------------------------------- |
-| Hosting  | [Render.com](https://render.com) (Web Service)  |
-| Database | [Aiven](https://aiven.io) – PostgreSQL          |
-| Cache    | [Upstash](https://upstash.com) – Redis          |
+| Service  | Provider                                       |
+| -------- | ---------------------------------------------- |
+| Hosting  | [Render.com](https://render.com) (Web Service) |
+| Database | [Aiven](https://aiven.io) – PostgreSQL         |
+| Cache    | [Upstash](https://upstash.com) – Redis         |
 
 ### CI/CD pipeline
 
@@ -375,25 +375,28 @@ npm run deploy:full # build:ui + git add + git commit + git push
 ### Setting up production from scratch
 
 **1. PostgreSQL – Aiven**
+
 1. Create an account at [aiven.io](https://aiven.io) and create a free PostgreSQL service
 2. Copy the **Service URI** — this is your `DATABASE_URL`
 3. Tables are created automatically on first backend start
 
 **2. Redis – Upstash**
+
 1. Create an account at [upstash.com](https://upstash.com)
 2. Create a Redis database (region closest to your Render region)
 3. Copy the **Redis URL** — this is your `REDIS_URL`
 
 **3. Render – Web Service**
+
 1. New → Web Service → connect your GitHub repository
 2. Set the following:
 
-| Setting | Value |
-| --- | --- |
-| Runtime | Node |
-| Build Command | `cd front && npm ci && npm run build && cd ../back && cp -r ../front/dist . && npm ci` |
-| Start Command | `node index.js` |
-| Root Directory | *(leave empty)* |
+| Setting        | Value                                                                                  |
+| -------------- | -------------------------------------------------------------------------------------- |
+| Runtime        | Node                                                                                   |
+| Build Command  | `cd front && npm ci && npm run build && cd ../back && cp -r ../front/dist . && npm ci` |
+| Start Command  | `node index.js`                                                                        |
+| Root Directory | _(leave empty)_                                                                        |
 
 3. Add environment variables:
 
@@ -413,6 +416,10 @@ REDIS_URL=<Upstash Redis URL>
 
 ## Todo
 
+- [ ] protect protect the main branch in a GitHub repository
+- [ ] add playright to github CI/CD pipelie
+- [ ] Adding more parameters for wines (year, grapes etc)
+- [ ] Updating wine psrameters and descriptions..
 - [ ] Filtering wines
 - [ ] User administration panel (admin)
 - [ ] Second external wine API integration
@@ -424,6 +431,7 @@ REDIS_URL=<Upstash Redis URL>
 
 ## Done
 
+- [x] protect protect the main branch in a GitHub repository
 - [x] CI/CD pipeline (GitHub Actions → Render deploy hook)
 - [x] Styles with Material UI
 - [x] Redis caching for wine catalogue (production, 60-day TTL, ioredis + Upstash)

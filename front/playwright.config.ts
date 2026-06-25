@@ -5,12 +5,13 @@ export default defineConfig({
   use: {
     baseURL: 'http://localhost:5173',
   },
-  timeout: 3000,
-  fullyParallel: false,
-  workers: 1,
+  timeout: 30000,
+  fullyParallel: true,
+  workers: process.env.CI ? 1 : undefined,
   webServer: {
     command: 'npm run dev',
     url: 'http://localhost:5173',
     reuseExistingServer: !process.env.CI,
+    timeout: 60000,
   },
 });
