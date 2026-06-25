@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 test('navigation links are visible', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByRole('link', { name: 'Home' })).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Wines' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Wines', exact: true })).toBeVisible();
 });
 
 test('wines page shows wine list', async ({ page }) => {

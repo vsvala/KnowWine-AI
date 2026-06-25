@@ -426,6 +426,7 @@ REDIS_URL=<Upstash Redis URL>
 - [ ] Rating system for My Wines
 - [ ] Wine poems
 - [ ] Docker Compose setup for local development
+- [ ] Add a periodic health check to regularly do an HTTP GET ping. request to server
 
 ## Done
 
