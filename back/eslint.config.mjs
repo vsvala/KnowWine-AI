@@ -11,6 +11,7 @@ import prettierPlugin from 'eslint-plugin-prettier';
 //npm run lint -- --max-warnings 0
 
 export default defineConfig([
+  { ignores: ['dist/**'] },
   js.configs.recommended,
   {
     files: ['**/*.js'],
@@ -38,6 +39,5 @@ export default defineConfig([
     },
 
     //extends: ['eslint:recommended', 'prettier'],
-    ignores: ['dist/**'],
   },
 ]);

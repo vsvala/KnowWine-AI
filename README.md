@@ -266,6 +266,20 @@ Generates a summary in the terminal and an HTML report in `front/coverage/index.
 | `MyWine.tsx`     | Renders wine name and description                                     |
 | `MyWineForm.tsx` | Typing into fields and submitting calls `addWine` with correct values |
 
+### Linting and formatting
+
+```bash
+# Check for lint errors
+cd back && npm run lint
+cd front && npm run lint
+
+# Fix all Prettier formatting issues automatically
+cd back && npm run format
+cd front && npm run format
+```
+
+Lint is also run automatically in the CI pipeline on every push to `master`.
+
 ### E2E tests (Playwright)
 
 E2E tests are **not part of the CI pipeline** — run them manually before committing significant UI changes.

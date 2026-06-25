@@ -121,7 +121,10 @@ describe('DELETE /api/users/:id', () => {
     const userToDelete = usersAtStart[0];
 
     const jwt = require('jsonwebtoken');
-    const token = jwt.sign({ username: userToDelete.username, id: userToDelete.id }, process.env.SECRET);
+    const token = jwt.sign(
+      { username: userToDelete.username, id: userToDelete.id },
+      process.env.SECRET
+    );
 
     await api
       .delete(`/api/users/${userToDelete.id}`)
