@@ -79,7 +79,7 @@ const App = () => {
     const loggedUserJSON = window.localStorage.getItem('loggedWineappUser');
     if (loggedUserJSON) {
       const loggedUser = JSON.parse(loggedUserJSON);
-      // eslint-disable-next-line react-hooks/exhaustive-deps
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setUser(loggedUser);
       myWineService.setToken(loggedUser.token);
     }

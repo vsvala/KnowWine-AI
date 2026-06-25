@@ -2,6 +2,9 @@
   "name": "front",
   "private": true,
   "version": "0.0.0",
+  "description": "Knowwine frontend",
+  "author": "Virva Svala<virva.svala@gamail.com",
+  "main": "src/index.js",
   "type": "module",
   "scripts": {
     "dev": "vite",
