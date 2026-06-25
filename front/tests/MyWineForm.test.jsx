@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react';
-import MyWineForm from '../src/components/MyWineForm';
+import MyWineForm from '../src/pages/MyWineForm';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 

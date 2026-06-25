@@ -36,7 +36,7 @@ const getByUsername = async (username) => {
 
 const getById = async (id) => {
   const result = await pool.query('SELECT id, name, username FROM users WHERE id = $1', [id]);
-  return result.rows;
+  return result.rows[0];
 };
 
 const deleteById = async (id) => {

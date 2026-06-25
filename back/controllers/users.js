@@ -4,6 +4,14 @@ const bcrypt = require('bcrypt');
 const User = require('../models/user');
 const jwt = require('jsonwebtoken');
 
+const getTokenFrom = (request) => {
+  const authorization = request.get('authorization');
+  if (authorization && authorization.startsWith('Bearer ')) {
+    return authorization.replace('Bearer ', '');
+  }
+  return null;
+};
+
 usersRouter.get('/', async (req, res, next) => {
   try {
     const result = await userModel.getAll();
@@ -20,10 +28,10 @@ usersRouter.get('/:id', async (req, res, next) => {
       return res.status(400).json({ error: 'Invalid ID' });
     }
     const result = await userModel.getById(id);
-    if (!result || result.length === 0) {
+    if (!result) {
       return res.status(404).json({ error: 'User not found' });
     }
-    res.json(result[0]);
+    res.json(result);
   } catch (error) {
     next(error);
   }

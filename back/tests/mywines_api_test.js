@@ -27,9 +27,10 @@ beforeEach(async () => {
   token = jwt.sign({ username: 'testuser', id: testUserId }, process.env.SECRET);
 
   for (const wine of helper.initialWines) {
-    await pool.query('INSERT INTO my_wines(name, description) VALUES ($1, $2)', [
+    await pool.query('INSERT INTO my_wines(name, description, user_id) VALUES ($1, $2, $3)', [
       wine.name,
       wine.description,
+      testUserId,
     ]);
   }
 });
@@ -127,9 +128,12 @@ describe('POST /api/mywines', () => {
 describe('DELETE /api/mywines/:id', () => {
   test('a wine can be deleted', async () => {
     const winesAtStart = await helper.winesInDb();
-    const wineToDelete = winesAtStart[0];
+    const wineToDelete = winesAtStart.find((w) => w.user_id === testUserId);
 
-    await api.delete(`/api/mywines/${wineToDelete.id}`).expect(204);
+    await api
+      .delete(`/api/mywines/${wineToDelete.id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(204);
 
     const winesAtEnd = await helper.winesInDb();
     assert.strictEqual(winesAtEnd.length, helper.initialWines.length - 1);

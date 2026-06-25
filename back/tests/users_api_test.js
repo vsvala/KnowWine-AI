@@ -120,7 +120,13 @@ describe('DELETE /api/users/:id', () => {
     const usersAtStart = await helper.usersInDb();
     const userToDelete = usersAtStart[0];
 
-    await api.delete(`/api/users/${userToDelete.id}`).expect(204);
+    const jwt = require('jsonwebtoken');
+    const token = jwt.sign({ username: userToDelete.username, id: userToDelete.id }, process.env.SECRET);
+
+    await api
+      .delete(`/api/users/${userToDelete.id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(204);
 
     const usersAtEnd = await helper.usersInDb();
     assert.strictEqual(usersAtEnd.length, helper.initialUsers.length - 1);

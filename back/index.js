@@ -4,6 +4,8 @@ const { PORT } = require('./utils/config');
 const { connectToDatabase } = require('./utils/db');
 
 const start = async () => {
+  if (!process.env.SECRET) throw new Error('SECRET environment variable is required');
+
   try {
     await connectToDatabase();
     app.listen(PORT, () => {

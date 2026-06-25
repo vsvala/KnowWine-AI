@@ -95,7 +95,7 @@ router.delete('/:id', async (req, res, next) => {
     if (!wine) {
       return res.status(404).json({ error: 'wine not found' });
     }
-    if (wine.user_id !== user.id) {
+    if (Number(wine.user_id) !== Number(user.id)) {
       return res.status(403).json({ error: 'not authorized' });
     }
     await mywineModel.deleteById(id);

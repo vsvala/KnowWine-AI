@@ -9,7 +9,7 @@ const initialWines = [
 ];
 
 const winesInDb = async () => {
-  const result = await pool.query('SELECT id, name, description FROM my_wines ORDER BY id');
+  const result = await pool.query('SELECT id, name, description, user_id FROM my_wines ORDER BY id');
   return result.rows;
 };
 
