@@ -1,8 +1,13 @@
 # KnowWine AI
 
+🚧 Actively developed full-stack personal project (ongoing development)
+![Status](https://img.shields.io/badge/status-active_development-blue)
+
 Personal project: A full-stack CRUD web app for wine discovery and personal wine management, powered by the GrapeMinds API. Discove and manage wines. Browse a wine catalogue from the GrapeMinds API, and keep a personal list of your favourite wines.
 
 **Live app:** https://knowwine-ai.onrender.com/
+
+(under contruction )
 
 ## Features
 
