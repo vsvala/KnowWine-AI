@@ -5,3 +5,5 @@ build
 production.md
 .playwright-mcp
 front/test-results
+security.md
+dockerplan.md

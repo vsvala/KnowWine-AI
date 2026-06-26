@@ -230,10 +230,7 @@ const App = () => {
           <Route path="/wines" element={<WineList wineList={wineList} />} />
           <Route path="/addwine" element={<MyWineForm addWine={addWine} />} />
           <Route path="/" element={<Home />} />
-          <Route
-            path="/login"
-            element={<LoginForm login={login} setNotification={setNotification} />}
-          />
+          <Route path="/login" element={<LoginForm login={login} />} />
         </Routes>
       </Container>
       <Footer />

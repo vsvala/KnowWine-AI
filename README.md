@@ -297,9 +297,9 @@ Lint is also run automatically in the CI pipeline on every push to `master`.
 
 ### E2E tests (Playwright)
 
-E2E tests are **not part of the CI pipeline** — run them manually before committing significant UI changes.
+E2E tests run automatically in the CI pipeline as a separate job after the unit tests pass. They can also be run locally.
 
-They require both the backend and frontend dev server to be running simultaneously.
+**Run locally** (requires both servers running):
 
 ```bash
 # Terminal 1
@@ -312,7 +312,7 @@ cd front && npm run dev
 cd front && npm run test:e2e
 
 # View last report
-npm run test:report
+cd front && npm run test:report
 ```
 
 Test files live in `front/tests/e2e/` and cover navigation, home page, and the wine catalogue.
@@ -359,25 +359,41 @@ docker exec -it knowwine-redis redis-cli
 
 ### CI/CD pipeline
 
-Every push to `master` triggers the pipeline defined in `.github/workflows/pipeline.yml`.
+Every push to `master` triggers the pipeline defined in `.github/workflows/pipeline.yml`. Pull requests run all tests but never deploy.
 
 ```
 git push master
     │
-    ├── GitHub Actions: run tests
-    │     ├── Backend integration tests  (node:test + supertest + PostgreSQL container)
-    │     └── Frontend unit tests        (Vitest)
+    ├─► JOB 1: test
+    │     ├── Lint — back + front (ESLint)
+    │     ├── Backend integration tests (node:test + PostgreSQL container)
+    │     ├── Frontend unit tests (Vitest)
+    │     └── npm audit --audit-level=high
     │
-    ├── [tests pass] ──► curl Render deploy hook ──► Render builds & deploys
-    └── [tests fail] ──► deploy blocked, production unchanged
+    ├─► JOB 2: e2e  (runs after test passes)
+    │     ├── Start backend in test mode
+    │     ├── Wait for backend to be ready (wait-on)
+    │     └── Playwright E2E tests (Chromium)
+    │
+    ├─► JOB 3: deploy  (runs after test + e2e pass, master push only)
+    │     └── curl Render deploy hook → Render builds & deploys
+    │
+    └─► JOB 4: tag_release  (runs after deploy)
+          └── Bump patch version and push git tag (e.g. v1.0.4)
 ```
 
-Pull requests to `master` also run the tests, but never trigger a deploy.
+**Skip deploy and tagging** by including `#skip` in the commit message:
 
-**Required setup:**
+```bash
+git commit -m "wip: experimenting with layout #skip"
+```
 
-1. Render Dashboard → Settings → Auto-Deploy → **No** (otherwise Render deploys before tests run)
-2. Render Dashboard → Settings → Deploy Hook → copy URL → add as GitHub Secret `RENDER_DEPLOY_HOOK_URL`
+**Required GitHub Secrets:**
+
+| Secret | Purpose |
+| --- | --- |
+| `RENDER_DEPLOY_HOOK_URL` | Triggers Render deploy (Dashboard → Settings → Deploy Hook) |
+| `GITHUB_TOKEN` | Auto-provided — used for pushing version tags |
 
 ### Manual deploy
 
