@@ -31,9 +31,9 @@ Key Features
 | Database | PostgreSQL (Aiven)                             |
 | Cache    | Redis (ioredis + Upstash) — production only    |
 | Auth     | JWT (`jsonwebtoken`), bcrypt                   |
-| Testing  | Unit tests: Vitest + React Testing Library
-             Integration tests: Node + Supertest
-             E2E tests: Playwright                          |
+| Testing  | Unit tests: Vitest + React Testing Library     |
+| Testing  | Integration tests: Node + Supertest            |
+| Testing  | E2E tests: Playwright                          |
 | CI/CD    | CI/CD via GitHub Actions                       |
 | Deploy   | Automated deploy Render.com                    |
 | Docker   | local PostgreSQL + test DB                     |
