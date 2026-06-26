@@ -5,17 +5,22 @@
 
 Personal project: A full-stack CRUD web app for wine discovery and personal wine management, powered by the GrapeMinds API. Discove and manage wines. Browse a wine catalogue from the GrapeMinds API, and keep a personal list of your favourite wines.
 
+It demonstrates modern software engineering practices including authentication, caching, CI/CD, automated testing, and third-party API integration.
+
 **Live app:** https://knowwine-ai.onrender.com/
 
-(under contruction )
+
 
 ## Features
 
-- Browse a wine catalogue with details like colour, type, sub-type, producer, and region
-- Personal "My Wines" list — add and delete wines with name and description
-- JWT-based user authentication (login/logout, token stored in localStorage)
-- User registration with input validation
-- Rate limiting and request size limits on the backend
+Key Features
+🍷 Browse wine catalogue via external API (GrapeMinds)
+⭐ Personal “My Wines” collection (add / delete / manage)
+🔐 JWT authentication (secure login & registration)
+⚡ Redis caching for production performance optimization
+🧾 Input validation + rate limiting (API protection)
+👤 User system with hashed passwords (bcrypt)
+🌐 CI/CD github actions pipeline andfull production deployment on Render
 
 ## Tech stack
 
@@ -26,7 +31,12 @@ Personal project: A full-stack CRUD web app for wine discovery and personal wine
 | Database | PostgreSQL (Aiven)                             |
 | Cache    | Redis (ioredis + Upstash) — production only    |
 | Auth     | JWT (`jsonwebtoken`), bcrypt                   |
-| Deploy   | Render.com (backend serves the built frontend) |
+| Testing  | Unit tests: Vitest + React Testing Library
+             Integration tests: Node + Supertest
+             E2E tests: Playwright                          |
+| CI/CD    | CI/CD via GitHub Actions                       |
+| Deploy   | Automated deploy Render.com                    |
+| Docker   | local PostgreSQL + test DB                     |
 
 ## Architecture
 
