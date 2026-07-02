@@ -28,7 +28,7 @@ Key Features
 | -------- | ---------------------------------------------- |
 | Frontend | React (TypeScript), Vite, Axios                |
 | Backend  | Node.js, Express 5                             |
-| Database | PostgreSQL (Aiven)                             |
+| Database | PostgreSQL (Neon)                              |
 | Cache    | Redis (ioredis + Upstash) — production only    |
 | Auth     | JWT (`jsonwebtoken`), bcrypt                   |
 | Testing  | Unit tests: Vitest + React Testing Library     |
@@ -63,7 +63,7 @@ Key Features
         ▼                     ▼
 ┌───────────────┐    ┌────────────────┐    ┌─────────────────────┐
 │  PostgreSQL   │    │  Redis         │    │  GrapeMinds API     │
-│  (Aiven)      │    │  (Upstash)     │───►│  api.grapeminds.eu  │
+│  (Neon)       │    │  (Upstash)     │───►│  api.grapeminds.eu  │
 │               │    │                │    │                     │
 │  users        │    │  grapeminds:   │    │  GET /wines         │
 │  my_wines     │    │  wines (60d)   │    │  (wine catalogue)   │
@@ -115,7 +115,7 @@ my_wines
 |                  | `development`        | `test`                  | `production`           |
 | ---------------- | -------------------- | ----------------------- | ---------------------- |
 | Wine data source | `wines.json` (local) | `wines.json` (local)    | GrapeMinds API + Redis |
-| Database         | localhost:5432       | localhost:5433 (Docker) | Aiven PostgreSQL       |
+| Database         | localhost:5432       | localhost:5433 (Docker) | Neon PostgreSQL        |
 | Redis            | not used             | not used                | Upstash                |
 | Rate limit       | 500 req/15 min       | 500 req/15 min          | 50 req/15 min          |
 | DB SSL           | off                  | off                     | on                     |
@@ -354,7 +354,7 @@ docker exec -it knowwine-redis redis-cli
 | Service  | Provider                                       |
 | -------- | ---------------------------------------------- |
 | Hosting  | [Render.com](https://render.com) (Web Service) |
-| Database | [Aiven](https://aiven.io) – PostgreSQL         |
+| Database | [Neon](https://neon.com) – PostgreSQL          |
 | Cache    | [Upstash](https://upstash.com) – Redis         |
 
 ### CI/CD pipeline
@@ -405,10 +405,10 @@ npm run deploy:full # build:ui + git add + git commit + git push
 
 ### Setting up production from scratch
 
-**1. PostgreSQL – Aiven**
+**1. PostgreSQL – Neon**
 
-1. Create an account at [aiven.io](https://aiven.io) and create a free PostgreSQL service
-2. Copy the **Service URI** — this is your `DATABASE_URL`
+1. Create an account at [neon.com](https://neon.com) and create a free PostgreSQL project
+2. Copy the **Connection String** — this is your `DATABASE_URL`
 3. Tables are created automatically on first backend start
 
 **2. Redis – Upstash**
@@ -433,7 +433,7 @@ npm run deploy:full # build:ui + git add + git commit + git push
 
 ```
 NODE_ENV=production
-DATABASE_URL=<Aiven Service URI>
+DATABASE_URL=<Neon Connection String>
 DB_SSL=true
 SECRET=<a long random string, e.g. openssl rand -hex 32>
 GRAPEMINDS_URL=https://api.grapeminds.eu/public/v1
