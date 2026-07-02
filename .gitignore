@@ -7,3 +7,8 @@ production.md
 front/test-results
 security.md
 dockerplan.md
+
+INSTRUCTIONS/
+
+# database dumps
+*.sql

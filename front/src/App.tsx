@@ -61,19 +61,19 @@ const App = () => {
   // Here it fetches the items from the backend API and sets state.
   // Runs once because the dependency array is empty (`[]`).
 
-  useEffect(() => {
-    console.log('useeffect get all users');
-    userService
-      .getAll()
-      .then((initialUsers) => {
-        setUser(initialUsers);
-      })
-      .catch(() => {
-        console.error('Error loading users');
-        setNotification({ text: 'Unable to load users', type: 'error' });
-      });
-  }, []);
-  // console.log('render', items.length, 'items')
+  // useEffect(() => {
+  //   console.log('useeffect get all users');
+  //   userService
+  //     .getAll()
+  //     .then((initialUsers) => {
+  //       setUser(initialUsers);
+  //     })
+  //     .catch(() => {
+  //       console.error('Error loading users');
+  //       setNotification({ text: 'Unable to load users', type: 'error' });
+  //     });
+  // }, []);
+  // // console.log('render', items.length, 'items')
 
   useEffect(() => {
     const loggedUserJSON = window.localStorage.getItem('loggedWineappUser');
@@ -143,7 +143,7 @@ const App = () => {
   const navigate = useNavigate();
 
   const login = async (username: string, password: string) => {
-    console.log('loggin with ', username, password);
+    console.log('loggin in ');
     try {
       const user = await loginService.login({ username, password });
       window.localStorage.setItem('loggedWineappUser', JSON.stringify(user));
@@ -164,6 +164,7 @@ const App = () => {
     window.localStorage.removeItem('loggedWineappUser');
     myWineService.setToken('');
     setUser(null);
+    navigate('/login');
   };
 
   const padding = {

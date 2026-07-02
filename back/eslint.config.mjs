@@ -1,7 +1,7 @@
 import js from '@eslint/js';
 import globals from 'globals';
 import { defineConfig } from 'eslint/config';
-//import stylisticJs from '@stylistic/eslint-plugin';
+import stylisticJs from '@stylistic/eslint-plugin';
 import prettierPlugin from 'eslint-plugin-prettier';
 //import prettierConfig from 'eslint-config-prettier';
 
@@ -21,14 +21,14 @@ export default defineConfig([
       ecmaVersion: 'latest',
     },
     plugins: {
-      //'@stylistic/js': stylisticJs,
+      '@stylistic/js': stylisticJs,
       prettier: prettierPlugin,
     },
     rules: {
-      // '@stylistic/js/indent': ['error', 2],
-      // '@stylistic/js/linebreak-style': ['error', 'unix'],
-      // '@stylistic/js/quotes': ['error', 'single'],
-      // '@stylistic/js/semi': ['error', 'never'],
+      //'@stylistic/js/indent': ['error', 2],
+      '@stylistic/js/linebreak-style': ['error', 'unix'],
+      '@stylistic/js/quotes': ['error', 'single'],
+      '@stylistic/js/semi': ['error', 'always'],
       'no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
       eqeqeq: 'error', // varoittaa, jos koodissa yhtäsuuruutta verrataan muuten kuin käyttämällä kolmea = ‑merkkiä.
       'no-trailing-spaces': 'error',
@@ -41,3 +41,4 @@ export default defineConfig([
     //extends: ['eslint:recommended', 'prettier'],
   },
 ]);
+//npm run format
