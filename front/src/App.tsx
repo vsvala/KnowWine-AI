@@ -1,7 +1,7 @@
 import './App.css';
 import { useState, useEffect } from 'react';
 import myWineService from './services/myWines';
-import userService from './services/users';
+//import userService from './services/users';
 import loginService from './services/login';
 import wineListService from './services/wineList';
 

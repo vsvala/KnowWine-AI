@@ -34,7 +34,10 @@ const update = (id: number, newObject: ItemInput) => {
 };
 
 const deleteWine = (id: number) => {
-  return axios.delete(`${baseUrl}/${id}`);
+  const config = {
+    headers: { Authorization: token },
+  };
+  return axios.delete(`${baseUrl}/${id}`, config);
 };
 
 export default {
