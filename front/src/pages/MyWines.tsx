@@ -22,7 +22,6 @@ const MyWines = ({ wines }: MyWinesProps) => {
   // const [user, setUser] = useState('');
   const [searched, setSearched] = useState('');
 
-
   const handleSearch = (e: ChangeEvent<HTMLInputElement>) => {
     setSearched(e.target.value);
   };
@@ -42,11 +41,7 @@ const MyWines = ({ wines }: MyWinesProps) => {
     <div>
       <h2>Search wines</h2>
       <div className="search-container">
-        <input 
-          type="text" 
-          placeholder="Search.." 
-          value={searched} 
-          onChange={handleSearch} />
+        <input type="text" placeholder="Search.." value={searched} onChange={handleSearch} />
       </div>
 
       <div className="search-container">

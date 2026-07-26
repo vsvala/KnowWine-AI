@@ -6,7 +6,11 @@ const NotificationContext = createContext<ReturnType<typeof useNotifications> | 
 
 export const NotificationProvider = ({ children }: { children: ReactNode }) => {
   const notificationState = useNotifications();
-  return <NotificationContext.Provider value={notificationState}>{children}</NotificationContext.Provider>;
+  return (
+    <NotificationContext.Provider value={notificationState}>
+      {children}
+    </NotificationContext.Provider>
+  );
 };
 
 // eslint-disable-next-line react-refresh/only-export-components

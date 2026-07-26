@@ -12,8 +12,6 @@ import InputAdornment from '@mui/material/InputAdornment';
 import { useAuthContext } from '../context/AuthContext';
 import { useNotificationContext } from '../context/NotificationContext';
 
-
-
 // interface LoginFormProps {
 //   login: (username: string, password: string) => Promise<void>;
 // }
@@ -40,14 +38,13 @@ const LoginForm = () => {
 
   const handleLogin = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e?.preventDefault();
-    try{   
+    try {
       await login(username, password);
       setUsername('');
-      setPassword('');   
-    }
-    catch(error){
+      setPassword('');
+    } catch (error) {
       showNotification('Error logging in', 'error');
-      console.log(error)
+      console.log(error);
     }
   };
 

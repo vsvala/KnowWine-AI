@@ -34,7 +34,7 @@ const update = (id: number, newObject: ItemInput) => {
 };
 
 const deleteWine = (id: number) => {
-  console.log("axios.delete")
+  console.log('axios.delete');
   const config = {
     headers: { Authorization: token },
   };

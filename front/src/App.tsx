@@ -5,7 +5,7 @@ import myWineService from './services/myWines';
 //import loginService from './services/login';
 import wineListService from './services/wineList';
 
-import {  Routes, Route, Link, useMatch } from 'react-router-dom';
+import { Routes, Route, Link, useMatch } from 'react-router-dom';
 import Footer from './components/Footer';
 import MyWineForm from './pages/MyWineForm';
 import MyWines from './pages/MyWines';
@@ -18,7 +18,7 @@ import LoginForm from './pages/LoginForm';
 import { Container, AppBar, Toolbar, Button } from '@mui/material';
 import Notification from './components/Notification';
 //import { useNavigate } from 'react-router-dom';
-import PrivateRoute from './components/common/PrivateRoute'
+import PrivateRoute from './components/common/PrivateRoute';
 import { useAuthContext } from './context/AuthContext';
 import { useNotificationContext } from './context/NotificationContext';
 
@@ -68,8 +68,6 @@ const App = () => {
   // }, []);
   // // console.log('render', items.length, 'items')
 
-
-
   useEffect(() => {
     console.log('effect');
     myWineService
@@ -78,7 +76,7 @@ const App = () => {
         setWines(initialMyWines);
       })
       .catch(() => showNotification('Unable to load wines', 'error'));
-  }, []);
+  }, [showNotification]);
 
   useEffect(() => {
     //fetch('http://localhost:3001/api/wines')
@@ -90,7 +88,7 @@ const App = () => {
       })
       .catch(() => showNotification('Unable to load wineList', 'error'));
     //console.error(err));
-  }, []);
+  }, [showNotification]);
 
   const addWine = (newWineObject: Wine) => {
     console.log(newWineObject);
@@ -98,11 +96,11 @@ const App = () => {
       .create(newWineObject)
       .then((returnedWine) => {
         setWines((prev) => prev.concat(returnedWine));
-        showNotification(  `Wine '${returnedWine.name}' added!`, 'success' );
+        showNotification(`Wine '${returnedWine.name}' added!`, 'success');
       })
       .catch((err) => {
         const message = err.response?.data?.error ?? 'Error adding item';
-        showNotification(  message, 'error' );
+        showNotification(message, 'error');
       });
   };
 
@@ -117,10 +115,9 @@ const App = () => {
         setWines((prev) => prev.filter((item) => item.id !== id));
       })
       .catch(() => {
-        showNotification('Error deleting item', 'error' );
+        showNotification('Error deleting item', 'error');
       });
   };
-
 
   const padding = {
     padding: 5,
@@ -176,21 +173,19 @@ const App = () => {
       <Container sx={{ padding: '30px; 0px ' }}>
         <Notification notification={notification} />
         <Routes>
-         
-          <Route element={<PrivateRoute user = {user} redirectPath="/login" />}>
+          <Route element={<PrivateRoute user={user} redirectPath="/login" />}>
             <Route path="/addwine" element={<MyWineForm addWine={addWine} />} />
             <Route
               path="/mywines/:id"
               element={<MyWine id={wine?.id} wine={wine} deleteWine={deleteWine} />}
             />
             <Route path="/mywines" element={<MyWines wines={wines} deleteWine={deleteWine} />} />
-          </Route> 
-         
-          
+          </Route>
+
           <Route path="/wines" element={<WineList wineList={wineList} />} />
           <Route path="/wines/:id" element={<WineSingle wine={wineListItem} />} />
           <Route path="/" element={<Home />} />
-          <Route path="/login" element={<LoginForm/>} />
+          <Route path="/login" element={<LoginForm />} />
         </Routes>
       </Container>
       <Footer />

@@ -1,8 +1,6 @@
-
 import { useState, useRef } from 'react';
 
 export const useNotifications = () => {
-
   const [notification, setNotification] = useState<{
     text: string;
     type: 'success' | 'error' | 'info' | 'warning';
@@ -17,7 +15,7 @@ export const useNotifications = () => {
     timeoutRef.current = setTimeout(() => {
       setNotification(null);
     }, 5000);
-  }
+  };
 
-  return { notification, showNotification }
-}
+  return { notification, showNotification };
+};
