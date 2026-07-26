@@ -82,9 +82,40 @@ jobs:
         run: npm audit --audit-level=high
         working-directory: back
 
+      # npm audit --audit-level=high failaisi buildin GHSA-qwww-vcr4-c8h2:n takia
+      # (React Router RSC-mode CSRF bypass). Koskee vain react-routerin
+      # epävakaita RSC-rajapintoja, joita tämä SPA ei käytä (pelkkä
+      # BrowserRouter/Routes). Korjaus vaatisi react-router-domin major-
+      # päivityksen 8.3.0:aan. Tarkista uudelleen jos RSC otetaan käyttöön
+      # tai kun react-router-dom päivitetään 8.x:ään.
       - name: Security audit front
-        run: npm audit --audit-level=high
         working-directory: front
+        run: |
+          ALLOWLIST="GHSA-qwww-vcr4-c8h2"
+
+          npm audit --json > audit.json || true
+
+          UNLISTED=$(jq -r --arg allow "$ALLOWLIST" '
+            ($allow | split(" ")) as $allowed
+            | [.vulnerabilities[]
+               | select(.severity == "high" or .severity == "critical")
+               | .via[]?
+               | objects
+               | .url
+               | capture("advisories/(?<id>GHSA-[a-z0-9-]+)").id
+              ]
+            | unique
+            | map(select(. as $id | $allowed | index($id) | not))
+            | .[]
+          ' audit.json)
+
+          if [ -n "$UNLISTED" ]; then
+            echo "High/critical vulnerabilities found that are NOT allowlisted:"
+            echo "$UNLISTED"
+            exit 1
+          fi
+
+          echo "No unallowlisted high/critical vulnerabilities found."
   # ============================================================
   # JOB 2: e2e TESTIT
   # Ajaa e2e d-testit parallel
