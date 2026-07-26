@@ -33,9 +33,14 @@ const LoginForm = ({ login }: LoginFormProps) => {
 
   const handleLogin = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e?.preventDefault();
-    login(username, password);
-    setUsername('');
-    setPassword('');
+    try{   
+      await login(username, password);
+      setUsername('');
+      setPassword('');   
+    }
+    catch(error){
+      console.log(error)
+    }
   };
 
   const handlePWChange = (e: React.ChangeEvent<HTMLInputElement>) => {

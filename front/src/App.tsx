@@ -5,7 +5,7 @@ import myWineService from './services/myWines';
 import loginService from './services/login';
 import wineListService from './services/wineList';
 
-import { Routes, Route, Link, useMatch } from 'react-router-dom';
+import {  Routes, Route, Link, useMatch } from 'react-router-dom';
 import Footer from './components/Footer';
 import MyWineForm from './pages/MyWineForm';
 import MyWines from './pages/MyWines';
@@ -55,7 +55,6 @@ const App = () => {
     type: 'success' | 'error' | 'info' | 'warning';
   } | null>(null);
 
-  //const wineFormRef = useRef();
 
   // useEffect: runs after the first render to perform side-effects.
   // Here it fetches the items from the backend API and sets state.
@@ -220,7 +219,6 @@ const App = () => {
       </AppBar>
       <Container sx={{ padding: '30px; 0px ' }}>
         <Notification notification={notification} />
-
         <Routes>
           <Route path="/wines/:id" element={<WineSingle wine={wineListItem} />} />
           <Route
@@ -236,50 +234,6 @@ const App = () => {
       </Container>
       <Footer />
     </div>
-    //   <h2>Search wines</h2>
-    //   <div className="search-container">
-    //     <input type="text" placeholder="Search.." value={searched} onChange={handleSearch} />
-    //   </div>
-
-    //   <div className="search-container">
-    //     <h2>Search Results</h2>
-    //     <ul>
-    //       {filteredItems.map((item) => (
-    //         <li key={item.id}>
-    //           <strong>{item.name}</strong>: {item.description}{' '}
-    //           {/* <button onClick={() => deleteItem(item.id)}>Delete</button> */}
-    //         </li>
-    //       ))}
-    //     </ul>
-    //     {searched.trim() !== '' && filteredItems.length === 0 && <p>No matching wines found.</p>}
-    //   </div>
-
-    //   <div className="search-container">
-    //     <h2>My favourites</h2>
-    //     <ul>
-    //       {items.map((item) => (
-    //         <li className="favourite-item" key={item.id}>
-    //           <strong>{item.name}</strong>: {item.description}{' '}
-    //           <button onClick={() => deleteItem(item.id)}>Delete</button>
-    //         </li>
-    //       ))}
-    //     </ul>
-    //   </div>
-    //   {error && <div className="error">{error}</div>}
-    //   {user && myWineForm()}
-    //   <br />
-    //   <div>
-    //     {users[0]?.name}
-    //     <ul>
-    //       {users.map((item) => (
-    //         <li key={item.id}>
-    //           <strong>{item.name}</strong>:{' '}
-    //         </li>
-    //       ))}
-    //     </ul>
-    //   </div>
-    //   <Footer />
-    // </div>
   );
 };
 export default App;
