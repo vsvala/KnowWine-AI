@@ -18,6 +18,8 @@ import LoginForm from './pages/LoginForm';
 import { Container, AppBar, Toolbar, Button } from '@mui/material';
 import Notification from './components/Notification';
 import { useNavigate } from 'react-router-dom';
+import PrivateRoute from './components/common/privateRoute'
+
 
 // curl http://localhost:3001/api/users
 // TODO aDD to favourotes list (wine) after search... changing importannce  2
@@ -220,14 +222,19 @@ const App = () => {
       <Container sx={{ padding: '30px; 0px ' }}>
         <Notification notification={notification} />
         <Routes>
-          <Route path="/wines/:id" element={<WineSingle wine={wineListItem} />} />
-          <Route
-            path="/mywines/:id"
-            element={<MyWine id={wine?.id} wine={wine} deleteWine={deleteWine} />}
-          />
-          <Route path="/mywines" element={<MyWines wines={wines} deleteWine={deleteWine} />} />
+         
+          <Route element={<PrivateRoute user = {user} redirectPath="/login" />}>
+            <Route path="/addwine" element={<MyWineForm addWine={addWine} />} />
+            <Route
+              path="/mywines/:id"
+              element={<MyWine id={wine?.id} wine={wine} deleteWine={deleteWine} />}
+            />
+            <Route path="/mywines" element={<MyWines wines={wines} deleteWine={deleteWine} />} />
+          </Route> 
+         
+          
           <Route path="/wines" element={<WineList wineList={wineList} />} />
-          <Route path="/addwine" element={<MyWineForm addWine={addWine} />} />
+          <Route path="/wines/:id" element={<WineSingle wine={wineListItem} />} />
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<LoginForm login={login} />} />
         </Routes>
