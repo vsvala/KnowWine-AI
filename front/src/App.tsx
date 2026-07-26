@@ -18,7 +18,7 @@ import LoginForm from './pages/LoginForm';
 import { Container, AppBar, Toolbar, Button } from '@mui/material';
 import Notification from './components/Notification';
 import { useNavigate } from 'react-router-dom';
-import PrivateRoute from './components/common/privateRoute'
+import PrivateRoute from './components/common/PrivateRoute'
 
 
 // curl http://localhost:3001/api/users
