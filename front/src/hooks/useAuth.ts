@@ -32,14 +32,6 @@ export const useAuth = () => {
         userService.setToken(user.token);
         setUser(user);
         navigate('/mywines');
-      //}TODO siittä logonformille notifikaation näyttö catch (error) {
-      ///  console.log('error submitting', error);
-        //setNotification({ text: 'Wrong username or password', type: 'error' });
-        //setErrorMessage('wrong credentials');
-      //  setTimeout(() => {
-       //   setNotification(null);
-      ///  }, 5000);
-      //}
     };
 
       const logout = () => {

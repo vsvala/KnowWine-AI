@@ -10,6 +10,7 @@ import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import InputAdornment from '@mui/material/InputAdornment';
 import { useAuthContext } from '../context/AuthContext';
+import { useNotificationContext } from '../context/NotificationContext';
 
 
 
@@ -19,6 +20,7 @@ import { useAuthContext } from '../context/AuthContext';
 
 const LoginForm = () => {
   const { login } = useAuthContext();
+  const { showNotification } = useNotificationContext();
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -44,6 +46,7 @@ const LoginForm = () => {
       setPassword('');   
     }
     catch(error){
+      showNotification('Error logging in', 'error');
       console.log(error)
     }
   };

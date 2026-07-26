@@ -20,7 +20,7 @@ import Notification from './components/Notification';
 //import { useNavigate } from 'react-router-dom';
 import PrivateRoute from './components/common/PrivateRoute'
 import { useAuthContext } from './context/AuthContext';
-
+import { useNotificationContext } from './context/NotificationContext';
 
 // curl http://localhost:3001/api/users
 // TODO aDD to favourotes list (wine) after search... changing importannce  2
@@ -48,12 +48,7 @@ const App = () => {
   const { user, logout } = useAuthContext();
   const [wines, setWines] = useState<Wine[]>([]);
   const [wineList, setWineList] = useState<WineLi[]>([]);
- // const [user, setUser] = useState<User | null>(null);
-  const [notification, setNotification] = useState<{
-    text: string;
-    type: 'success' | 'error' | 'info' | 'warning';
-  } | null>(null);
-
+  const { notification, showNotification } = useNotificationContext();
 
   // useEffect: runs after the first render to perform side-effects.
   // Here it fetches the items from the backend API and sets state.
@@ -82,7 +77,7 @@ const App = () => {
       .then((initialMyWines) => {
         setWines(initialMyWines);
       })
-      .catch(() => setNotification({ text: 'Unable to load wines', type: 'error' }));
+      .catch(() => showNotification('Unable to load wines', 'error'));
   }, []);
 
   useEffect(() => {
@@ -93,7 +88,7 @@ const App = () => {
       .then((initialWineList) => {
         setWineList(initialWineList);
       })
-      .catch(() => setNotification({ text: 'Unable to load wineList', type: 'error' }));
+      .catch(() => showNotification('Unable to load wineList', 'error'));
     //console.error(err));
   }, []);
 
@@ -103,15 +98,11 @@ const App = () => {
       .create(newWineObject)
       .then((returnedWine) => {
         setWines((prev) => prev.concat(returnedWine));
-        setNotification({ text: `Wine '${returnedWine.name}' added!`, type: 'success' });
-        setTimeout(() => {
-          setNotification(null);
-        }, 5000);
+        showNotification(  `Wine '${returnedWine.name}' added!`, 'success' );
       })
       .catch((err) => {
         const message = err.response?.data?.error ?? 'Error adding item';
-        setNotification({ text: message, type: 'error' });
-        setTimeout(() => setNotification(null), 5000);
+        showNotification(  message, 'error' );
       });
   };
 
@@ -126,20 +117,10 @@ const App = () => {
         setWines((prev) => prev.filter((item) => item.id !== id));
       })
       .catch(() => {
-        setNotification({ text: 'Error deleting item', type: 'error' });
+        showNotification('Error deleting item', 'error' );
       });
   };
 
- //TODO move notifications to loginform...
-  //   } catch (error) {
-  //     console.log('error submitting', error);
-  //     setNotification({ text: 'Wrong username or password', type: 'error' });
-  //     //setErrorMessage('wrong credentials');
-  //     setTimeout(() => {
-  //       setNotification(null);
-  //     }, 5000);
-  //   }
-  // };
 
   const padding = {
     padding: 5,
