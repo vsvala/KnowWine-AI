@@ -1,5 +1,10 @@
+const dns = require('dns');
 const { Pool } = require('pg');
 const config = require('./config');
+
+// Neon's host resolves to IPv6; on networks with broken IPv6 routing the TLS
+// handshake completes but reads then hang until ETIMEDOUT. Prefer IPv4.
+dns.setDefaultResultOrder('ipv4first');
 
 const pool = new Pool({
   connectionString: config.DATABASE_URL,
