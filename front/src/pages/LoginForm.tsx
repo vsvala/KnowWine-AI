@@ -9,12 +9,17 @@ import FormControl from '@mui/material/FormControl';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import InputAdornment from '@mui/material/InputAdornment';
+import { useAuthContext } from '../context/AuthContext';
 
-interface LoginFormProps {
-  login: (username: string, password: string) => Promise<void>;
-}
 
-const LoginForm = ({ login }: LoginFormProps) => {
+
+// interface LoginFormProps {
+//   login: (username: string, password: string) => Promise<void>;
+// }
+
+const LoginForm = () => {
+  const { login } = useAuthContext();
+
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
 

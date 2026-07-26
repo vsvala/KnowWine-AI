@@ -2,7 +2,7 @@ import './App.css';
 import { useState, useEffect } from 'react';
 import myWineService from './services/myWines';
 //import userService from './services/users';
-import loginService from './services/login';
+//import loginService from './services/login';
 import wineListService from './services/wineList';
 
 import {  Routes, Route, Link, useMatch } from 'react-router-dom';
@@ -17,8 +17,9 @@ import Home from './pages/Home';
 import LoginForm from './pages/LoginForm';
 import { Container, AppBar, Toolbar, Button } from '@mui/material';
 import Notification from './components/Notification';
-import { useNavigate } from 'react-router-dom';
+//import { useNavigate } from 'react-router-dom';
 import PrivateRoute from './components/common/PrivateRoute'
+import { useAuthContext } from './context/AuthContext';
 
 
 // curl http://localhost:3001/api/users
@@ -43,15 +44,11 @@ type WineLi = {
   region: string | null;
 };
 
-type User = {
-  id: number;
-  name: string;
-  username: string;
-};
 const App = () => {
+  const { user, logout } = useAuthContext();
   const [wines, setWines] = useState<Wine[]>([]);
   const [wineList, setWineList] = useState<WineLi[]>([]);
-  const [user, setUser] = useState<User | null>(null);
+ // const [user, setUser] = useState<User | null>(null);
   const [notification, setNotification] = useState<{
     text: string;
     type: 'success' | 'error' | 'info' | 'warning';
@@ -76,15 +73,7 @@ const App = () => {
   // }, []);
   // // console.log('render', items.length, 'items')
 
-  useEffect(() => {
-    const loggedUserJSON = window.localStorage.getItem('loggedWineappUser');
-    if (loggedUserJSON) {
-      const loggedUser = JSON.parse(loggedUserJSON);
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setUser(loggedUser);
-      myWineService.setToken(loggedUser.token);
-    }
-  }, []);
+
 
   useEffect(() => {
     console.log('effect');
@@ -141,32 +130,16 @@ const App = () => {
       });
   };
 
-  const navigate = useNavigate();
-
-  const login = async (username: string, password: string) => {
-    console.log('loggin in ');
-    try {
-      const user = await loginService.login({ username, password });
-      window.localStorage.setItem('loggedWineappUser', JSON.stringify(user));
-      myWineService.setToken(user.token);
-      setUser(user);
-      navigate('/mywines');
-    } catch (error) {
-      console.log('error submitting', error);
-      setNotification({ text: 'Wrong username or password', type: 'error' });
-      //setErrorMessage('wrong credentials');
-      setTimeout(() => {
-        setNotification(null);
-      }, 5000);
-    }
-  };
-
-  const handleLogout = () => {
-    window.localStorage.removeItem('loggedWineappUser');
-    myWineService.setToken('');
-    setUser(null);
-    navigate('/login');
-  };
+ //TODO move notifications to loginform...
+  //   } catch (error) {
+  //     console.log('error submitting', error);
+  //     setNotification({ text: 'Wrong username or password', type: 'error' });
+  //     //setErrorMessage('wrong credentials');
+  //     setTimeout(() => {
+  //       setNotification(null);
+  //     }, 5000);
+  //   }
+  // };
 
   const padding = {
     padding: 5,
@@ -211,7 +184,7 @@ const App = () => {
           )}
 
           {user ? (
-            <button onClick={handleLogout}>Log out ({user.name})</button>
+            <button onClick={logout}>Log out ({user.name})</button>
           ) : (
             <Link style={padding} to="/login">
               Login
@@ -236,7 +209,7 @@ const App = () => {
           <Route path="/wines" element={<WineList wineList={wineList} />} />
           <Route path="/wines/:id" element={<WineSingle wine={wineListItem} />} />
           <Route path="/" element={<Home />} />
-          <Route path="/login" element={<LoginForm login={login} />} />
+          <Route path="/login" element={<LoginForm/>} />
         </Routes>
       </Container>
       <Footer />

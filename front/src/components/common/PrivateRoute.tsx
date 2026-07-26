@@ -12,7 +12,7 @@ type PrivateRouteProps = {
 };
 
 const PrivateRoute = ({ user, redirectPath= "/"  }:PrivateRouteProps) => {
-console.log(user)
+//console.log(user)
 
   return user ? <Outlet /> : <Navigate to={redirectPath} replace />
 }
