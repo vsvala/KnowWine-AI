@@ -110,6 +110,14 @@ my_wines
         └── INSERT INTO my_wines
 ```
 
+### Frontend auth state
+
+Login state, the `login`/`logout` actions, and the auto-login-from-`localStorage` effect live in a single `useAuth` hook (`front/src/hooks/useAuth.ts`), exposed app-wide through `AuthContext` (`front/src/context/AuthContext.tsx`) via a `useAuthContext()` consumer hook. `main.tsx` wraps the app in `<AuthProvider>`, so any component can read `user` or call `login`/`logout` without prop drilling.
+
+### Frontend wine state
+
+Wine catalogue browsing and the user's personal wine list are each handled by their own hook — `useWineList` and `useMyWines` — exposed app-wide via `WineListContext` and `MyWinesContext`. Both hooks call `useNotificationContext()` to surface load/add/delete errors, so `NotificationProvider` must be mounted above them in `main.tsx`.
+
 ### Environment matrix
 
 |                  | `development`        | `test`                  | `production`           |
@@ -135,6 +143,8 @@ KnowWine/
 └── front/                 # React frontend
     └── src/
         ├── components/    # UI components
+        ├── context/       # AuthContext, NotificationContext, MyWinesContext, WineListContext
+        ├── hooks/         # useAuth, useNotifications, useMyWines, useWineList
         └── services/      # Axios API calls (login, myWines, users, wineList)
 ```
 
@@ -146,8 +156,8 @@ KnowWine/
 | GET    | `/api/mywines`     | No            | List all user-saved wines     |
 | GET    | `/api/mywines/:id` | No            | Get a single saved wine       |
 | POST   | `/api/mywines`     | Yes (Bearer)  | Add a wine to My Wines        |
-| DELETE | `/api/mywines/:id` | No            | Delete a wine from My Wines   |
-| GET    | `/api/users`       | No            | List users                    |
+| DELETE | `/api/mywines/:id` | Yes (Bearer)  | Delete a wine from My Wines   |
+| GET    | `/api/users`       | Yes (Bearer)  | List users                    |
 | POST   | `/api/users`       | No            | Register a new user           |
 | POST   | `/api/login`       | No            | Login and receive a JWT token |
 
@@ -473,6 +483,8 @@ REDIS_URL=<Upstash Redis URL>
 - [x] External wine API integration (GrapeMinds)
 - [x] Navigation with React Router (BrowserRouter)
 - [x] JWT token authentication and login/logout
+- [x] Auth state moved to Context API (`AuthContext` + `useAuth` hook)
+- [x] My Wines and wine catalogue state moved to Context API (`MyWinesContext`/`WineListContext`)
 - [x] Backend integration tests (mywines + users)
 - [x] ESLint and Prettier
 - [x] Project setup: React (TypeScript) frontend + Express backend connected
