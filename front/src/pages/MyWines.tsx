@@ -1,26 +1,15 @@
 import { useState, type ChangeEvent } from 'react';
 import { Link } from 'react-router-dom';
-//import myWineService from '../services/myWines';
-//import userService from '../services/users';
-//import loginService from '../services/login';
-//import MyWineForm from './MyWineForm';
+import { useMyWinesContext } from '../context/MyWinesContext';
 
-type Wine = {
-  id: number;
-  name: string;
-  description: string;
-};
 
-interface MyWinesProps {
-  wines: Wine[];
-  deleteWine: (id: number) => void;
-}
-
-const MyWines = ({ wines }: MyWinesProps) => {
+const MyWines = () => {
   //const [wines, setWines] = useState<Wine[]>([]);
   //const [users, setUsers] = useState<User[]>([]);
   // const [user, setUser] = useState('');
   const [searched, setSearched] = useState('');
+  const { myWines } = useMyWinesContext();
+
 
   const handleSearch = (e: ChangeEvent<HTMLInputElement>) => {
     setSearched(e.target.value);
@@ -29,7 +18,7 @@ const MyWines = ({ wines }: MyWinesProps) => {
   const filteredWines =
     searched.trim() === ''
       ? []
-      : wines.filter((wine) => {
+      : myWines.filter((wine) => {
           const lowerSearch = searched.toLowerCase().trim();
           return (
             wine.name.toLowerCase().includes(lowerSearch) ||
@@ -41,7 +30,11 @@ const MyWines = ({ wines }: MyWinesProps) => {
     <div>
       <h2>Search wines</h2>
       <div className="search-container">
-        <input type="text" placeholder="Search.." value={searched} onChange={handleSearch} />
+        <input 
+          type="text" 
+          placeholder="Search.." 
+          value={searched} 
+          onChange={handleSearch} />
       </div>
 
       <div className="search-container">
@@ -60,7 +53,7 @@ const MyWines = ({ wines }: MyWinesProps) => {
       <div className="search-container">
         <h2>My Wines</h2>
         <ul>
-          {wines.map((wine: Wine) => (
+          {myWines.map((wine) => (
             <li className="favourite-item" key={wine.id}>
               <Link to={`/mywines/${wine.id}`}>
                 <strong>{wine.name}</strong>

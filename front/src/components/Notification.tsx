@@ -1,5 +1,6 @@
 import { Alert } from '@mui/material';
 
+
 type NotificationProps = {
   notification: { text: string; type: 'success' | 'error' | 'info' | 'warning' } | null;
 };
