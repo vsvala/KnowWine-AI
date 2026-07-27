@@ -1,6 +1,8 @@
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import MyWine from '../src/components/MyWine';
+import { NotificationProvider } from '../src/context/NotificationContext';
+import { MyWinesProvider } from '../src/context/MyWinesContext';
 
 test('renders content', () => {
   const mywine = {
@@ -10,7 +12,11 @@ test('renders content', () => {
 
   render(
     <MemoryRouter>
-      <MyWine wine={mywine} id={1} deleteWine={() => {}} />
+      <NotificationProvider>
+        <MyWinesProvider>
+          <MyWine wine={mywine} id={1} />
+        </MyWinesProvider>
+      </NotificationProvider>
     </MemoryRouter>
   );
   //  screen.debug()
