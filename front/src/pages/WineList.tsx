@@ -1,4 +1,4 @@
-import { useState, type ChangeEvent } from 'react';
+import { useEffect, useState, type ChangeEvent } from 'react';
 import { Link } from 'react-router-dom';
 
 import {
@@ -33,21 +33,35 @@ interface WineListProps {
 
 const WineList = ({ wineList }: WineListProps) => {
   const [searched, setSearched] = useState('');
+  const [debouncedSearch, setDebouncedSearch]= useState('')
+
+
+useEffect(() => {
+
+  const timeOutId = setTimeout(()=>{
+  setDebouncedSearch(searched);
+  },300);
+
+  return () => clearTimeout(timeOutId)
+
+},[searched]);
+
 
   const handleSearch = (e: ChangeEvent<HTMLInputElement>) => {
     setSearched(e.target.value);
   };
 
   const filteredWines =
-    searched.trim() === ''
+   debouncedSearch.trim() === ''
       ? []
       : wineList.filter((wine) => {
-          const lowerSearch = searched.toLowerCase().trim();
+          const lowerSearch = debouncedSearch.toLowerCase().trim();
           return (
             wine.display_name.toLowerCase().includes(lowerSearch) ||
             wine.type.toLowerCase().includes(lowerSearch)
           );
         });
+ 
 
   return (
     <div>
@@ -88,8 +102,7 @@ const WineList = ({ wineList }: WineListProps) => {
                 <TableRow key={wine.id}>
                   <TableCell>
                     <Link to={`/wines/${wine.id}`}>
-                      <strong>{wine.display_name}</strong>
-                    </Link>
+                      <strong>{wine.display_name}</strong>                    </Link>
                   </TableCell>
                   <TableCell sx={{ color: '#fff' }}>{wine.type}</TableCell>
                   <TableCell sx={{ color: '#fff' }}>{wine.sub_type}</TableCell>
