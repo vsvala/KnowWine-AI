@@ -33,7 +33,21 @@ app.use(
         : 'http://localhost:5173',
   })
 );
-app.use(helmet());
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+        // maplibre-gl runs its tile/glyph parsing in a worker created from a
+        // blob: URL, which the default script-src fallback doesn't allow.
+        workerSrc: ['self', 'blob:'],
+        // Home.tsx loads the demo style/tiles/glyphs straight from
+        // demotiles.maplibre.org; default-src 'self' otherwise blocks the fetch.
+        connectSrc: ['self', 'https://demotiles.maplibre.org'],
+      },
+    },
+  })
+);
 
 const BASE_URL = process.env.GRAPEMINDS_URL;
 console.log('url', process.env.GRAPEMINDS_URL);
