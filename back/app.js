@@ -40,10 +40,10 @@ app.use(
         ...helmet.contentSecurityPolicy.getDefaultDirectives(),
         // maplibre-gl runs its tile/glyph parsing in a worker created from a
         // blob: URL, which the default script-src fallback doesn't allow.
-        workerSrc: ['self', 'blob:'],
+        workerSrc: ["'self'", 'blob:'], // eslint-disable-line @stylistic/js/quotes -- literal quotes required by CSP
         // Home.tsx loads the demo style/tiles/glyphs straight from
         // demotiles.maplibre.org; default-src 'self' otherwise blocks the fetch.
-        connectSrc: ['self', 'https://demotiles.maplibre.org'],
+        connectSrc: ["'self'", 'https://demotiles.maplibre.org'], // eslint-disable-line @stylistic/js/quotes -- literal quotes required by CSP
       },
     },
   })
