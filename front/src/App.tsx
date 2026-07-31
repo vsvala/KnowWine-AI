@@ -30,8 +30,8 @@ const App = () => {
   const { notification } = useNotificationContext();
   const { myWines, addWine } = useMyWinesContext();
   const { wineList } = useWineListContext();
-  
-    // useEffect: runs after the first render to perform side-effects.
+
+  // useEffect: runs after the first render to perform side-effects.
   // Here it fetches the items from the backend API and sets state.
   // Runs once because the dependency array is empty (`[]`).
 
@@ -48,7 +48,6 @@ const App = () => {
   //     });
   // }, []);
   // // console.log('render', items.length, 'items')
-
 
   const padding = {
     padding: 5,
@@ -106,10 +105,7 @@ const App = () => {
         <Routes>
           <Route element={<PrivateRoute user={user} redirectPath="/login" />}>
             <Route path="/addwine" element={<MyWineForm addWine={addWine} />} />
-            <Route
-              path="/mywines/:id"
-              element={<MyWine id={wine?.id} wine={wine} />}
-            />
+            <Route path="/mywines/:id" element={<MyWine id={wine?.id} wine={wine} />} />
             <Route path="/mywines" element={<MyWines />} />
           </Route>
 

@@ -2,14 +2,12 @@ import { useState, type ChangeEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { useMyWinesContext } from '../context/MyWinesContext';
 
-
 const MyWines = () => {
   //const [wines, setWines] = useState<Wine[]>([]);
   //const [users, setUsers] = useState<User[]>([]);
   // const [user, setUser] = useState('');
   const [searched, setSearched] = useState('');
   const { myWines } = useMyWinesContext();
-
 
   const handleSearch = (e: ChangeEvent<HTMLInputElement>) => {
     setSearched(e.target.value);
@@ -26,15 +24,26 @@ const MyWines = () => {
           );
         });
 
+  //  const redWines  =  myWines.filter(wine => wine.type="red")
+  //  console.log(redWines)
+
+  //  const whiteWines  =  myWines.filter(wine => wine.type="red")
+  //  console.log(redWines)
+
+  //  const sparklingWines  =  myWines.filter(wine => wine.type="red")
+  //  console.log(redWines)
+
+  //  const wineRegion  =  myWines.filter(wine => wine.type="red")
+  //  console.log(redWines)
+
+  //counrty
+  //grapes
+
   return (
     <div>
       <h2>Search wines</h2>
       <div className="search-container">
-        <input 
-          type="text" 
-          placeholder="Search.." 
-          value={searched} 
-          onChange={handleSearch} />
+        <input type="text" placeholder="Search.." value={searched} onChange={handleSearch} />
       </div>
 
       <div className="search-container">

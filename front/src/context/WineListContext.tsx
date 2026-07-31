@@ -5,11 +5,7 @@ const WineListContext = createContext<ReturnType<typeof useWineList> | null>(nul
 
 export const WineListProvider = ({ children }: { children: ReactNode }) => {
   const wineListState = useWineList();
-  return (
-    <WineListContext.Provider value={wineListState}>
-      {children}
-    </WineListContext.Provider>
-  );
+  return <WineListContext.Provider value={wineListState}>{children}</WineListContext.Provider>;
 };
 
 // eslint-disable-next-line react-refresh/only-export-components

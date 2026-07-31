@@ -1,8 +1,6 @@
- 
-import { useEffect,useState } from 'react';
+import { useEffect, useState } from 'react';
 import wineListService from '../services/wineList';
 import { useNotificationContext } from '../context/NotificationContext';
-
 
 type WineList = {
   id: number;
@@ -31,4 +29,4 @@ export const useWineList = () => {
   }, [showNotification]);
 
   return { wineList };
-}
+};

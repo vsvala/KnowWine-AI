@@ -33,26 +33,23 @@ interface WineListProps {
 
 const WineList = ({ wineList }: WineListProps) => {
   const [searched, setSearched] = useState('');
-  const [debouncedSearch, setDebouncedSearch]= useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('');
 
+  useEffect(() => {
+    const timeOutId = setTimeout(() => {
+      setDebouncedSearch(searched);
+    }, 300);
 
-useEffect(() => {
-
-  const timeOutId = setTimeout(()=>{
-  setDebouncedSearch(searched);
-  },300);
-
-  return () => clearTimeout(timeOutId)
-
-},[searched]);
-
+    return () => clearTimeout(timeOutId);
+  }, [searched]);
 
   const handleSearch = (e: ChangeEvent<HTMLInputElement>) => {
     setSearched(e.target.value);
   };
 
   const filteredWines =
-   debouncedSearch.trim() === ''
+    //debouncedSearch.trim() === ''
+    debouncedSearch.trim().length < 2
       ? []
       : wineList.filter((wine) => {
           const lowerSearch = debouncedSearch.toLowerCase().trim();
@@ -61,7 +58,6 @@ useEffect(() => {
             wine.type.toLowerCase().includes(lowerSearch)
           );
         });
- 
 
   return (
     <div>
@@ -102,7 +98,8 @@ useEffect(() => {
                 <TableRow key={wine.id}>
                   <TableCell>
                     <Link to={`/wines/${wine.id}`}>
-                      <strong>{wine.display_name}</strong>                    </Link>
+                      <strong>{wine.display_name}</strong>{' '}
+                    </Link>
                   </TableCell>
                   <TableCell sx={{ color: '#fff' }}>{wine.type}</TableCell>
                   <TableCell sx={{ color: '#fff' }}>{wine.sub_type}</TableCell>

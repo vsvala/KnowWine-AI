@@ -21,8 +21,7 @@ export const useMyWines = () => {
       })
       .catch(() => showNotification('Unable to load wines', 'error'));
   }, [showNotification]);
-   
-  
+
   const addWine = (newWineObject: Wine) => {
     console.log(newWineObject);
     myWineService
@@ -36,11 +35,10 @@ export const useMyWines = () => {
         showNotification(message, 'error');
       });
   };
-   const deleteWine = (id: number) => {
+  const deleteWine = (id: number) => {
     const wineToDelete = myWines.find((item) => item.id === id);
     console.log('delete wine with id', id, wineToDelete);
 
-   
     return myWineService
       .deleteWine(id)
       .then(() => {
@@ -48,14 +46,11 @@ export const useMyWines = () => {
         setMyWines((prev) => prev.filter((item) => item.id !== id));
         showNotification(`Wine '${wineToDelete?.name}' deleted!`, 'success');
         return true;
-
-    })
+      })
       .catch(() => {
         showNotification('Error deleting item', 'error');
         return false;
       });
   };
-    return { myWines, addWine, deleteWine };
-
-    
-}
+  return { myWines, addWine, deleteWine };
+};
