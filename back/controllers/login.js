@@ -5,7 +5,9 @@ const userModel = require('../models/user');
 
 loginRouter.post('/', async (req, res, next) => {
   try {
-    const { username, password } = req.body;
+    const { password } = req.body;
+    const username =
+      typeof req.body.username === 'string' ? req.body.username.trim() : req.body.username;
     const isValid =
       typeof username === 'string' &&
       typeof password === 'string' &&
@@ -32,7 +34,6 @@ loginRouter.post('/', async (req, res, next) => {
     };
     // token expires in 60*60 seconds, that is, in one hour
     const token = jwt.sign(userForToken, process.env.SECRET, { expiresIn: 60 * 60 });
-
     res.status(200).send({ token, username: user.username, name: user.name });
   } catch (error) {
     next(error);
