@@ -19,8 +19,11 @@ const {
 } = require('./utils/middleware');
 
 const app = express();
-// If this app runs behind a proxy (Render, Heroku, etc.), trust proxy headers
-app.set('trust proxy', true);
+// Trust exactly one hop (Render's edge proxy) so req.ip is the address Render
+// appended to X-Forwarded-For, not an attacker-controlled value further left
+// in the chain. `true` would trust the whole chain, letting clients spoof
+// req.ip on every request and bypass IP-keyed rate limiting entirely.
+app.set('trust proxy', process.env.NODE_ENV === 'production' ? 1 : false);
 //app.use(cors());
 app.use(
   cors({
