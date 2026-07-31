@@ -6,6 +6,15 @@ const userModel = require('../models/user');
 loginRouter.post('/', async (req, res, next) => {
   try {
     const { username, password } = req.body;
+    const isValid =
+      typeof username === 'string' &&
+      typeof password === 'string' &&
+      username.length > 0 &&
+      password.length > 0 &&
+      password.length <= 2000;
+    if (!isValid) {
+      return res.status(401).json({ error: 'invalid username or password' });
+    }
 
     const users = await userModel.getByUsername(username);
     const user = users[0];

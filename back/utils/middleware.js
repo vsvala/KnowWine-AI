@@ -49,6 +49,28 @@ const rateLimiter = (req, res, next) => {
   next();
 };
 
+// Stricter limiter specifically for login attempts (brute-force protection)
+const loginAttemptCounts = {};
+const LOGIN_RATE_LIMIT_WINDOW = 15 * 60 * 1000; // 15 minutes
+const LOGIN_RATE_LIMIT_MAX = process.env.NODE_ENV === 'production' ? 8 : 500;
+
+const loginRateLimiter = (req, res, next) => {
+  const ip = req.ip || req.connection.remoteAddress;
+  const now = Date.now();
+
+  if (!loginAttemptCounts[ip] || now > loginAttemptCounts[ip].reset) {
+    loginAttemptCounts[ip] = { count: 0, reset: now + LOGIN_RATE_LIMIT_WINDOW };
+  }
+
+  loginAttemptCounts[ip].count++;
+
+  if (loginAttemptCounts[ip].count > LOGIN_RATE_LIMIT_MAX) {
+    return res.status(429).json({ error: 'Too many login attempts. Try again later.' });
+  }
+
+  next();
+};
+
 // Clean up old rate limit entries every 30 minutes
 // .unref() so this timer doesn't prevent the process from exiting (e.g. in tests)
 setInterval(
@@ -59,8 +81,13 @@ setInterval(
         delete requestCounts[ip];
       }
     }
+    for (const ip in loginAttemptCounts) {
+      if (loginAttemptCounts[ip].reset < now) {
+        delete loginAttemptCounts[ip];
+      }
+    }
   },
   30 * 60 * 1000
 ).unref();
 
-module.exports = { unknownEndpoint, errorHandler, rateLimiter };
+module.exports = { unknownEndpoint, errorHandler, rateLimiter, loginRateLimiter };

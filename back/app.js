@@ -9,8 +9,14 @@ const wines = require('./wines.json');
 const redis = require('./utils/redis');
 const WINES_CACHE_KEY = 'grapeminds:wines';
 const CACHE_TTL = 5184000; // 2kk minuuttia sekunteina
+const helmet = require('helmet');
 
-const { unknownEndpoint, errorHandler, rateLimiter } = require('./utils/middleware');
+const {
+  unknownEndpoint,
+  errorHandler,
+  rateLimiter,
+  loginRateLimiter,
+} = require('./utils/middleware');
 
 const app = express();
 // If this app runs behind a proxy (Render, Heroku, etc.), trust proxy headers
@@ -24,12 +30,14 @@ app.use(
         : 'http://localhost:5173',
   })
 );
+app.use(helmet());
 
 const BASE_URL = process.env.GRAPEMINDS_URL;
 console.log('url', process.env.GRAPEMINDS_URL);
 
 dotenv.config.app; // Request size limit (prevent large payloads that consume memory)
 app.use(express.json({ limit: '1mb' }));
+
 app.use(rateLimiter);
 
 if (process.env.NODE_ENV === 'production') {
@@ -45,7 +53,8 @@ if (process.env.NODE_ENV === 'production') {
 
 app.use('/api/mywines', mywinesRouter);
 app.use('/api/users', usersRouter);
-app.use('/api/login', loginRouter);
+//app.use('/api/login', loginRouter);
+app.use('/api/login', loginRateLimiter, loginRouter);
 
 app.get('/api/wines', async (req, res) => {
   // dev ad test: use local json-file
