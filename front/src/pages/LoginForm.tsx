@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import * as React from 'react';
+import { useState, useId } from 'react';
 import { TextField, Button } from '@mui/material';
 import Box from '@mui/material/Box';
 import IconButton from '@mui/material/IconButton';
@@ -22,9 +21,10 @@ const LoginForm = () => {
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
-  const outlinedPasswordId = React.useId();
-  const [showPassword, setShowPassword] = React.useState(false);
+  const outlinedPasswordId = useId();
+  
 
   const handleClickShowPassword = () => setShowPassword((show) => !show);
 
@@ -36,8 +36,8 @@ const LoginForm = () => {
     event.preventDefault();
   };
 
-  const handleLogin = async (e: React.SubmitEvent<HTMLFormElement>) => {
-    e?.preventDefault();
+  const handleLogin = async (event: React.SubmitEvent<HTMLFormElement>) => {
+    event?.preventDefault();
     try {
       await login(username, password);
       setUsername('');
@@ -48,12 +48,12 @@ const LoginForm = () => {
     }
   };
 
-  const handlePWChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setPassword(e.target.value);
+  const handlePWChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setPassword(event.target.value);
   };
 
-  const handleUNChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setUsername(e.target.value);
+  const handleUNChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setUsername(event.target.value);
   };
 
   return (
