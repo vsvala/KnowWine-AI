@@ -28,14 +28,14 @@ const createWineValidation = [
 
 router.get('/', authenticate, async (req, res, next) => {
   try {
-    const result = await myWinesService.getAllMyWines();
+    const result = await myWinesService.getAllMyWines(req.user.id);
     res.json(result);
   } catch (error) {
     next(error);
   }
 });
 
-router.get('/:id', async (req, res, next) => {
+router.get('/:id', authenticate, async (req, res, next) => {
   try {
     const id = Number(req.params.id);
     if (Number.isNaN(id)) {
@@ -44,6 +44,9 @@ router.get('/:id', async (req, res, next) => {
     const result = await myWinesService.getMyWineById(id);
     if (!result) {
       return res.status(404).json({ error: 'Item not found' });
+    }
+    if (Number(result.user_id) !== Number(req.user.id)) {
+      return res.status(403).json({ error: 'not authorized' });
     }
     res.json(result);
   } catch (error) {

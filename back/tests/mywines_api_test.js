@@ -39,12 +39,13 @@ describe('GET /api/mywines', () => {
   test('returns wines as json', async () => {
     await api
       .get('/api/mywines')
+      .set('Authorization', `Bearer ${token}`)
       .expect(200)
       .expect('Content-Type', /application\/json/);
   });
 
   test('returns all wines', async () => {
-    const response = await api.get('/api/mywines');
+    const response = await api.get('/api/mywines').set('Authorization', `Bearer ${token}`);
     assert.strictEqual(response.body.length, helper.initialWines.length);
   });
 });
@@ -54,17 +55,43 @@ describe('GET /api/mywines/:id', () => {
     const winesAtStart = await helper.winesInDb();
     const wineToView = winesAtStart[0];
 
-    const result = await api.get(`/api/mywines/${wineToView.id}`).expect(200);
+    const result = await api
+      .get(`/api/mywines/${wineToView.id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
 
     assert.strictEqual(result.body.name, wineToView.name);
   });
 
   test('returns 404 for nonexistent id', async () => {
-    await api.get('/api/mywines/999999').expect(404);
+    await api.get('/api/mywines/999999').set('Authorization', `Bearer ${token}`).expect(404);
   });
 
   test('returns 400 for invalid id', async () => {
-    await api.get('/api/mywines/notanumber').expect(400);
+    await api.get('/api/mywines/notanumber').set('Authorization', `Bearer ${token}`).expect(400);
+  });
+
+  test('returns 403 for another users wine', async () => {
+    const otherUserResult = await pool.query(
+      'INSERT INTO users(name, username, password_hash) VALUES ($1, $2, $3) RETURNING id',
+      ['OtherUser', 'otheruser', 'hashedpassword']
+    );
+    const otherWineResult = await pool.query(
+      'INSERT INTO my_wines(name, description, user_id) VALUES ($1, $2, $3) RETURNING id',
+      ['Amarone', 'A rich Italian red wine', otherUserResult.rows[0].id]
+    );
+
+    await api
+      .get(`/api/mywines/${otherWineResult.rows[0].id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(403);
+  });
+
+  test('request without token is rejected', async () => {
+    const winesAtStart = await helper.winesInDb();
+    const wineToView = winesAtStart[0];
+
+    await api.get(`/api/mywines/${wineToView.id}`).expect(401);
   });
 });
 

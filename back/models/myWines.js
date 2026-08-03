@@ -1,8 +1,9 @@
 const { pool } = require('../utils/db');
 
-const getAll = async () => {
+const getAll = async (userId) => {
   const result = await pool.query(
-    'SELECT id, name, description, user_id FROM my_wines ORDER BY id'
+    'SELECT id, name, description, user_id FROM my_wines WHERE user_id = $1 ORDER BY id',
+    [userId]
   );
   return result.rows;
 };

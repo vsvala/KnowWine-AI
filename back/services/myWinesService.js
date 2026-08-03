@@ -1,19 +1,11 @@
 const myWinesModel = require('../models/myWines');
 
-const getAllMyWines = async () => {
-  const myWines = await myWinesModel.getAll();
-  if (!myWines) {
-    throw new Error('myWines not found');
-  }
-  return myWines;
+const getAllMyWines = async (userId) => {
+  return myWinesModel.getAll(userId);
 };
 
 const getMyWineById = async (id) => {
-  const wine = await myWinesModel.getById(id);
-  if (!wine) {
-    throw new Error('Wine not found');
-  }
-  return wine;
+  return myWinesModel.getById(id);
 };
 
 const createMyWine = async ({ name, description, userId }) => {
