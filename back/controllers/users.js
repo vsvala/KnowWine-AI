@@ -1,16 +1,31 @@
 const usersRouter = require('express').Router();
 const userModel = require('../models/user');
 const bcrypt = require('bcrypt');
-const User = require('../models/user');
-const jwt = require('jsonwebtoken');
+const authenticate = require('../utils/authenticate');
+const { body } = require('express-validator');
+const { handleValidationErrors } = require('../utils/validate');
 
-const getTokenFrom = (request) => {
-  const authorization = request.get('authorization');
-  if (authorization && authorization.startsWith('Bearer ')) {
-    return authorization.replace('Bearer ', '');
-  }
-  return null;
-};
+const createUserValidation = [
+  body('name')
+    .isString()
+    .withMessage('name must be a string')
+    .trim()
+    .isLength({ min: 2 })
+    .withMessage('name must be at least 2 characters'),
+  body('username')
+    .isString()
+    .withMessage('username must be a string')
+    .trim()
+    .isLength({ min: 3 })
+    .withMessage('username must be at least 3 characters')
+    .matches(/^[a-zA-Z0-9_]+$/)
+    .withMessage('username may only contain letters, numbers, and underscores'),
+  body('password')
+    .isString()
+    .withMessage('password must be a string')
+    .isLength({ min: 8, max: 2000 })
+    .withMessage('password must be 8-2000 characters'),
+];
 
 usersRouter.get('/', async (req, res, next) => {
   try {
@@ -37,46 +52,9 @@ usersRouter.get('/:id', async (req, res, next) => {
   }
 });
 
-usersRouter.delete('/:id', async (req, res, next) => {
-  const id = Number(req.params.id);
-  try {
-    if (Number.isNaN(id)) {
-      return res.status(400).json({ error: 'Invalid ID' });
-    }
-    const decodedToken = jwt.verify(getTokenFrom(req), process.env.SECRET);
-    if (!decodedToken.id) {
-      return res.status(401).json({ error: 'token invalid' });
-    }
-    const user = await User.getById(decodedToken.id);
-
-    if (!user) {
-      return res.status(401).json({ error: 'token invalid' });
-    }
-    await userModel.deleteById(id);
-    res.status(204).end();
-  } catch (error) {
-    next(error);
-  }
-});
-
-usersRouter.post('/', async (req, res, next) => {
+usersRouter.post('/', createUserValidation, handleValidationErrors, async (req, res, next) => {
   try {
     const { username, name, password } = req.body;
-
-    if (!name || name.trim().length < 2) {
-      return res.status(400).json({ error: 'name must be at least 2 characters' });
-    }
-    if (!username || username.trim().length < 3) {
-      return res.status(400).json({ error: 'username must be at least 3 characters' });
-    }
-    if (!/^[a-zA-Z0-9_]+$/.test(username)) {
-      return res
-        .status(400)
-        .json({ error: 'username may only contain letters, numbers, and underscores' });
-    }
-    if (!password || password.length < 8) {
-      return res.status(400).json({ error: 'password must be at least 8 characters' });
-    }
 
     const saltRounds = 10;
     const passwordHash = await bcrypt.hash(password, saltRounds);
@@ -90,6 +68,19 @@ usersRouter.post('/', async (req, res, next) => {
     if (error.code === '23514') {
       return res.status(400).json({ error: 'name must be at least 2 characters' });
     }
+    next(error);
+  }
+});
+
+usersRouter.delete('/:id', authenticate, async (req, res, next) => {
+  const id = Number(req.params.id);
+  try {
+    if (Number.isNaN(id)) {
+      return res.status(400).json({ error: 'Invalid ID' });
+    }
+    await userModel.deleteById(id);
+    res.status(204).end();
+  } catch (error) {
     next(error);
   }
 });

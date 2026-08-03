@@ -1,16 +1,12 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const mywinesRouter = require('./controllers/mywines');
+const mywinesRouter = require('./controllers/myWines');
 const usersRouter = require('./controllers/users');
 const loginRouter = require('./controllers/login');
+const winesRouter = require('./controllers/wines');
 const dotenv = require('dotenv');
-const wines = require('./wines.json');
-const redis = require('./utils/redis');
-const WINES_CACHE_KEY = 'grapeminds:wines';
-const CACHE_TTL = 5184000; // 2kk minuuttia sekunteina
 const helmet = require('helmet');
-
 const {
   unknownEndpoint,
   errorHandler,
@@ -30,7 +26,7 @@ app.use(
     origin:
       process.env.NODE_ENV === 'production'
         ? 'https://knowwine-ai.onrender.com'
-        : 'http://localhost:5173',
+        : 'http://localhost:5173', //dev
   })
 );
 app.use(
@@ -48,9 +44,6 @@ app.use(
     },
   })
 );
-
-const BASE_URL = process.env.GRAPEMINDS_URL;
-console.log('url', process.env.GRAPEMINDS_URL);
 
 dotenv.config.app; // Request size limit (prevent large payloads that consume memory)
 app.use(express.json({ limit: '1mb' }));
@@ -70,44 +63,9 @@ if (process.env.NODE_ENV === 'production') {
 
 app.use('/api/mywines', mywinesRouter);
 app.use('/api/users', usersRouter);
-//app.use('/api/login', loginRouter);
 app.use('/api/login', loginRateLimiter, loginRouter);
+app.use('/api/wines', winesRouter);
 
-app.get('/api/wines', async (req, res) => {
-  // dev ad test: use local json-file
-  if (process.env.NODE_ENV !== 'production') {
-    return res.json(wines.data);
-  }
-  //  // production: Redis cache → GRAPEMINDS API
-  try {
-    // 1.check cache first
-    const cached = await redis.get(WINES_CACHE_KEY);
-    if (cached) {
-      console.log('wines from cache');
-      return res.json(JSON.parse(cached));
-    }
-    // // 2. empty Cache t → call API
-    const response = await fetch(`${BASE_URL}/wines?per_page=100&page=1`, {
-      headers: {
-        Authorization: `Bearer ${process.env.GRAPEMINDS_API_KEY}`,
-      },
-    });
-    if (!response.ok) {
-      throw new Error(`HTTP error: ${response.status}`);
-    }
-    // try {
-
-    const wines = await response.json();
-
-    console.log(wines.data);
-    // 3. save Redis TTL
-    await redis.set(WINES_CACHE_KEY, JSON.stringify(wines.data), 'EX', CACHE_TTL);
-
-    res.json(wines.data);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
 app.get('/health', (req, res) => {
   res.send('ok');
 });

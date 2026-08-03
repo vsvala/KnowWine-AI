@@ -1,8 +1,9 @@
 const unknownEndpoint = (req, res) => {
   res.status(404).json({ error: 'unknown endpoint' });
 };
-
-const errorHandler = (error, req, res, next) => {
+// Express only recognizes this as error-handling middleware if it has 4 params,
+// so `_next` must stay even though it's unused in the body.
+const errorHandler = (error, req, res, _next) => {
   console.error(error.message);
 
   if (error instanceof SyntaxError && 'body' in error) {
@@ -20,9 +21,9 @@ const errorHandler = (error, req, res, next) => {
   if (error.name === 'TokenExpiredError') {
     return res.status(401).json({ error: 'token expired' });
   }
-
-  next(error);
+  res.status(500).json({ error: 'Internal server error' });
 };
+
 // Simple rate limiter (max 50 req/15min in production, 500 in development)
 const requestCounts = {};
 const RATE_LIMIT_WINDOW = 15 * 60 * 1000; // 15 minutes
