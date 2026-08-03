@@ -19,8 +19,8 @@ export const useMyWines = () => {
       .then((initialMyWines) => {
         setMyWines(initialMyWines);
       })
-      .catch(() => showNotification('Unable to load wines', 'error'));
-  }, [showNotification]);
+      .catch(() => showNotification('Unable to load myWines', 'error'));
+  }, []);// eslint-disable-line react-hooks/exhaustive-deps
 
   const addWine = (newWineObject: Wine) => {
     console.log(newWineObject);

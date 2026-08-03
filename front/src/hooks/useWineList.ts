@@ -26,7 +26,25 @@ export const useWineList = () => {
       })
       .catch(() => showNotification('Unable to load wineList', 'error'));
     //console.error(err));
-  }, [showNotification]);
+  }, []);// eslint-disable-line react-hooks/exhaustive-deps
 
   return { wineList };
 };
+
+
+
+
+//   useEffect(() => {
+//     const fetchWines = async () => {
+//       try {
+//         const initialWineList = fetch("https:www/...) //await wineListService.getAll();
+//         setWineList(initialWineList);
+//       } catch {
+//         setError('Unable to load wineList');
+//       }
+//     };
+//     fetchWines();
+//   }, []);
+
+//   return { wineList, error };
+// };

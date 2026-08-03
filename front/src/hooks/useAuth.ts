@@ -24,6 +24,7 @@ export const useAuth = () => {
       userService.setToken(loggedUser.token);
     }
   }, []);
+  
   const login = async (username: string, password: string) => {
     console.log('loggin in ');
     const user = await loginService.login({ username, password });
