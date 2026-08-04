@@ -29,7 +29,7 @@ const App = () => {
   const { user, logout } = useAuthContext();
   const { notification } = useNotificationContext();
   const { myWines, addWine } = useMyWinesContext();
-  const { wineList } = useWineListContext();
+  const { wineList, isLoading: wineListLoading } = useWineListContext();
 
   // useEffect: runs after the first render to perform side-effects.
   // Here it fetches the items from the backend API and sets state.
@@ -109,7 +109,10 @@ const App = () => {
             <Route path="/mywines" element={<MyWines />} />
           </Route>
 
-          <Route path="/wines" element={<WineList wineList={wineList} />} />
+          <Route
+            path="/wines"
+            element={<WineList wineList={wineList} isLoading={wineListLoading} />}
+          />
           <Route path="/wines/:id" element={<WineSingle wine={wineListItem} />} />
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<LoginForm />} />

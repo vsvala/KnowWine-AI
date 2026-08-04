@@ -1,5 +1,7 @@
 import { useEffect, useState, type ChangeEvent } from 'react';
 import { Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import wineListService from '../services/wineList';
 
 import {
   Table,
@@ -29,11 +31,13 @@ type Wine = {
 
 interface WineListProps {
   wineList: Wine[];
+  isLoading?: boolean;
 }
 
-const WineList = ({ wineList }: WineListProps) => {
+const WineList = ({ wineList, isLoading }: WineListProps) => {
   const [searched, setSearched] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
+  
 
   useEffect(() => {
     const timeOutId = setTimeout(() => {
@@ -47,17 +51,12 @@ const WineList = ({ wineList }: WineListProps) => {
     setSearched(e.target.value);
   };
 
-  const filteredWines =
-    //debouncedSearch.trim() === ''
-    debouncedSearch.trim().length < 2
-      ? []
-      : wineList.filter((wine) => {
-          const lowerSearch = debouncedSearch.toLowerCase().trim();
-          return (
-            wine.display_name.toLowerCase().includes(lowerSearch) ||
-            wine.type.toLowerCase().includes(lowerSearch)
-          );
-        });
+
+  const { data: filteredWines = [] } = useQuery<Wine[]>({
+    queryKey: ['wines', 'search', debouncedSearch],
+    queryFn: () => wineListService.searchAll(debouncedSearch),
+    enabled: debouncedSearch.trim().length >= 2,
+  });
 
   return (
     <div>
@@ -84,30 +83,34 @@ const WineList = ({ wineList }: WineListProps) => {
       <div className="search-container">
         <h2>Wines</h2>
 
-        <TableContainer component={Paper} sx={{ backgroundColor: '#000', color: '#fff' }}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell sx={{ color: '#fff' }}>Name</TableCell>
-                <TableCell sx={{ color: '#fff' }}>Type</TableCell>
-                <TableCell sx={{ color: '#fff' }}>Subtype</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {wineList.map((wine: Wine) => (
-                <TableRow key={wine.id}>
-                  <TableCell>
-                    <Link to={`/wines/${wine.id}`}>
-                      <strong>{wine.display_name}</strong>{' '}
-                    </Link>
-                  </TableCell>
-                  <TableCell sx={{ color: '#fff' }}>{wine.type}</TableCell>
-                  <TableCell sx={{ color: '#fff' }}>{wine.sub_type}</TableCell>
+        {isLoading ? (
+          <p>Loading wines...</p>
+        ) : (
+          <TableContainer component={Paper} sx={{ backgroundColor: '#000', color: '#fff' }}>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell sx={{ color: '#fff' }}>Name</TableCell>
+                  <TableCell sx={{ color: '#fff' }}>Type</TableCell>
+                  <TableCell sx={{ color: '#fff' }}>Subtype</TableCell>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+              </TableHead>
+              <TableBody>
+                {wineList.map((wine: Wine) => (
+                  <TableRow key={wine.id}>
+                    <TableCell>
+                      <Link to={`/wines/${wine.id}`}>
+                        <strong>{wine.display_name}</strong>{' '}
+                      </Link>
+                    </TableCell>
+                    <TableCell sx={{ color: '#fff' }}>{wine.type}</TableCell>
+                    <TableCell sx={{ color: '#fff' }}>{wine.sub_type}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        )}
       </div>
 
       <br />
@@ -115,3 +118,15 @@ const WineList = ({ wineList }: WineListProps) => {
   );
 };
 export default WineList;
+
+    //     const filteredWines =
+    // //debouncedSearch.trim() === ''
+    // debouncedSearch.trim().length < 2
+    //   ? []
+      // : wineList.filter((wine) => {
+      //     const lowerSearch = debouncedSearch.toLowerCase().trim();
+      //     return (
+      //       wine.display_name.toLowerCase().includes(lowerSearch) ||
+      //       wine.type.toLowerCase().includes(lowerSearch)
+     //     );
+     //  });

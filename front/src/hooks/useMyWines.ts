@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNotificationContext } from '../context/NotificationContext';
+import { useAuthContext } from '../context/AuthContext';
 import myWineService from '../services/myWines';
 
 type Wine = {
@@ -11,16 +12,19 @@ type Wine = {
 export const useMyWines = () => {
   const [myWines, setMyWines] = useState<Wine[]>([]);
   const { showNotification } = useNotificationContext();
+  const { user } = useAuthContext();
 
   useEffect(() => {
-    console.log('effect');
+    // Skip the fetch until a user is logged in - the endpoint requires
+    // auth, and firing it while logged out just produces a spurious 401.
+    if (!user) return;
     myWineService
       .getAll()
       .then((initialMyWines) => {
         setMyWines(initialMyWines);
       })
       .catch(() => showNotification('Unable to load myWines', 'error'));
-  }, []);// eslint-disable-line react-hooks/exhaustive-deps
+  }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const addWine = (newWineObject: Wine) => {
     console.log(newWineObject);

@@ -3,7 +3,6 @@
 import axios from 'axios';
 
 //let token: string | null = null;
-
 // const setToken = (newToken: string) => {
 //   token = `Bearer ${newToken}`;
 // };
@@ -16,7 +15,12 @@ const getAll = () => {
   return request.then((response) => response.data);
 };
 
+const searchAll = (term: string) => {
+  const request = axios.get(baseUrl, { params: { search: term } });
+  return request.then((response) => response.data);
+};
+
 export default {
-  getAll,
+  getAll, searchAll,
   //setToken,
 };

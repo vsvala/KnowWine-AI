@@ -1,5 +1,6 @@
-//Axios is a Promise-based HTTP client for browsers and Node.js used
-// to make HTTP requests (GET/POST/PUT/DELETE, etc.) works with server-side code and APIs.
+// REST client for the /api/mywines backend resource (GET/POST/PUT/DELETE).
+// setToken() must be called after login so requests can attach the
+// Authorization header.
 import axios from 'axios';
 
 let token: string | null = null;
@@ -16,7 +17,10 @@ type ItemInput = {
 };
 
 const getAll = () => {
-  const request = axios.get(baseUrl);
+  const config = {
+    headers: { Authorization: token },
+  };
+  const request = axios.get(baseUrl, config);
   return request.then((response) => response.data);
 };
 
@@ -29,7 +33,10 @@ const create = (newObject: ItemInput) => {
 };
 
 const update = (id: number, newObject: ItemInput) => {
-  const request = axios.put(`${baseUrl}/${id}`, newObject);
+  const config = {
+    headers: { Authorization: token },
+  };
+  const request = axios.put(`${baseUrl}/${id}`, newObject, config);
   return request.then((response) => response.data);
 };
 
