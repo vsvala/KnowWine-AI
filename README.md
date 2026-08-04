@@ -26,7 +26,7 @@ Key Features
 
 | Layer    | Technology                                     |
 | -------- | ---------------------------------------------- |
-| Frontend | React (TypeScript), Vite, Axios                |
+| Frontend | React (TypeScript), Vite, Axios, TanStack Query |
 | Backend  | Node.js, Express 5                             |
 | Database | PostgreSQL (Neon)                              |
 | Cache    | Redis (ioredis + Upstash) — production only    |
@@ -118,6 +118,8 @@ Login state, the `login`/`logout` actions, and the auto-login-from-`localStorage
 
 Wine catalogue browsing and the user's personal wine list are each handled by their own hook — `useWineList` and `useMyWines` — exposed app-wide via `WineListContext` and `MyWinesContext`. Both hooks call `useNotificationContext()` to surface load/add/delete errors, so `NotificationProvider` must be mounted above them in `main.tsx`.
 
+`useWineList` fetches the catalogue via TanStack Query (`QueryClientProvider` wraps the app in `main.tsx`) instead of a manual `useEffect`/`useState` fetch — this gives it caching, retries, and a long `staleTime` (the catalogue is Redis-cached for 60 days on the backend, so there's no value in refetching on every window focus). The wine search box on `/wines` (`pages/WineList.tsx`) runs its own separate `useQuery`, keyed by the debounced search term, against `GET /api/wines?search=`; see [Wine search](#wine-search) below for the full flow.
+
 ### Environment matrix
 
 |                  | `development`        | `test`                  | `production`           |
@@ -152,7 +154,7 @@ KnowWine/
 
 | Method | Path               | Auth required | Description                   |
 | ------ | ------------------ | ------------- | ----------------------------- |
-| GET    | `/api/wines`       | No            | List all wines from catalogue |
+| GET    | `/api/wines`       | No            | List all wines from catalogue. Optional `?search=` filters by `display_name`/`type` (case-insensitive substring match) |
 | GET    | `/api/mywines`     | No            | List all user-saved wines     |
 | GET    | `/api/mywines/:id` | No            | Get a single saved wine       |
 | POST   | `/api/mywines`     | Yes (Bearer)  | Add a wine to My Wines        |
@@ -329,6 +331,47 @@ Test files live in `front/tests/e2e/` and cover navigation, home page, and the w
 
 ---
 
+## Wine search
+
+`GET /api/wines` accepts an optional `search` query param that filters the catalogue server-side
+before it's returned — case-insensitive substring match against `display_name` and `type`.
+Filtering happens in `back/services/winesService.js#getAllWines(search)`, **after** the Redis/
+`wines.json` cache lookup, not as a separate query — the full catalogue is already in memory at
+that point (it's small and Redis-cached for 60 days), so filtering is a plain `Array.filter`, not
+a database query.
+
+```
+GET /api/wines?search=riesling
+    │
+    ├── winesRouter reads req.query.search
+    ├── winesService.getAllWines(search)
+    │     ├── loads the full wine array (Redis cache in prod, wines.json in dev/test)
+    │     └── if `search` is set, .filter()s by display_name/type (case-insensitive)
+    └── res.json(filtered array)
+```
+
+On the frontend, `pages/WineList.tsx`'s "Search Results" list runs its own TanStack Query call,
+independent from the full-catalogue `useWineList()` used by the table below it:
+
+```ts
+const { data: filteredWines = [] } = useQuery<Wine[]>({
+  queryKey: ['wines', 'search', debouncedSearch],
+  queryFn: () => wineListService.searchAll(debouncedSearch),
+  enabled: debouncedSearch.trim().length >= 2, // don't fire on 0-1 chars
+});
+```
+
+Because `debouncedSearch` is part of the `queryKey`, TanStack Query automatically refetches when
+the (debounced) search term changes and caches each term separately — searching "riesling", then
+something else, then "riesling" again re-uses the cached result instead of re-fetching. The
+300ms debounce on `searched` (before it becomes `debouncedSearch`) means a request only fires
+once the user pauses typing, not on every keystroke.
+
+**Known limitation:** this only searches the wines already fetched into the backend's cache
+(currently capped at the first 100 from GrapeMinds — see `back/README.md` §8 Known Issues #2). It
+is not a query against GrapeMinds' own catalogue, so wines beyond that first page are unsearchable
+until the pagination issue is addressed.
+
 ## Redis caching
 
 In **production**, the `GET /api/wines` endpoint caches the GrapeMinds wine catalogue in Redis to avoid hitting the external API on every request. In **development** and **test** the endpoint returns the local `wines.json` file and Redis is not used.
@@ -460,7 +503,6 @@ REDIS_URL=<Upstash Redis URL>
 - testing skipping
 - [ ] Adding more parameters for wines (year, grapes etc)
 - [ ] Updating wine parameters and descriptions..
-- [ ] Filtering wines
 - [ ] User administration panel (admin)
 - [ ] Second external wine API integration
 - [ ] Map of wine regions with pop-ups
@@ -472,6 +514,8 @@ REDIS_URL=<Upstash Redis URL>
 
 ## Done
 
+- [x] Wine catalogue search (`GET /api/wines?search=`, backend-filtered; frontend via TanStack Query)
+- [x] Wine catalogue fetching migrated to TanStack Query (caching, retries, tuned `staleTime`)
 - [x] refining github CI/CD pipeline to have version release tags and option to skip deployment and tags
 - [x] Add playright e2e tests to github CI/CD pipeline to run as parallel job
 - [x] protect protect the main branch in a GitHub repository
