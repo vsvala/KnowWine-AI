@@ -32,11 +32,15 @@ const fetchWinesFromApi = async () => {
   return wines.data;
 };
 
-const getAllWines = async () => {
-  if (process.env.NODE_ENV !== 'production') {
-    return wines.data;
-  }
-  return fetchWinesFromApi();
+const getAllWines = async (search) => {
+  const allWines = process.env.NODE_ENV !== 'production' ? wines.data : await fetchWinesFromApi();
+  if (!search) return allWines;
+  const lowerSearch = search.toLowerCase();
+  return allWines.filter(
+    (wine) =>
+      wine.display_name?.toLowerCase().includes(lowerSearch) ||
+      wine.type?.toLowerCase().includes(lowerSearch)
+  );
 };
 
 module.exports = { getAllWines };
