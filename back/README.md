@@ -329,8 +329,8 @@ sequenceDiagram
     participant RD as Redis
     participant GM as GrapeMinds API
 
-    FE->>WR: GET /api/wines
-    WR->>WS: getAllWines()
+    FE->>WR: GET /api/wines?search=riesling
+    WR->>WS: getAllWines(search)
     alt NODE_ENV !== production
         WS-->>WR: local wines.json (dev/test fixture)
     else production
@@ -344,13 +344,18 @@ sequenceDiagram
         end
         WS-->>WR: wine array
     end
+    opt search is set
+        WS->>WS: filter array by display_name/type (case-insensitive)
+    end
     WR-->>FE: 200 [...]
 ```
 
 The 60-day TTL and dev/test fixture fallback exist specifically to avoid
 metered calls to GrapeMinds — the app has no license to store this catalogue
 permanently, so Redis is used purely as an expiring cache, never as a
-system of record.
+system of record. The `search` filter runs **after** the cache lookup, over
+whatever array was already in memory — it does not add a second Redis or
+GrapeMinds call, so search is effectively free once the cache is warm.
 
 ### 5.3 My Wines (`/api/mywines`)
 
@@ -408,10 +413,11 @@ Ordered by severity — this is the section to work through next.
 2. **External catalogue pagination is hardcoded to page 1.**
    `wineService.js` always requests `?per_page=100&page=1` — if GrapeMinds
    has more than 100 wines, the rest are permanently unreachable, cached or
-   not. No search endpoint exists yet either; a search feature needs either
-   (a) GrapeMinds' own search/filter query params (unverified — needs a
-   manual `curl` check against their API), or (b) a full paginated fetch
-   loop feeding a backend `/api/wines/search` route.
+   not. A search endpoint now exists (`GET /api/wines?search=`,
+   `winesService.getAllWines(search)`, see §5.2), but it only filters the
+   already-cached page-1 array in memory — it does not query GrapeMinds'
+   own search/filter API (unverified whether one exists) and cannot surface
+   wines beyond the first 100 until this pagination limit is resolved.
 
 ### Medium
 
@@ -441,9 +447,11 @@ Ordered by severity — this is the section to work through next.
 
 1. Finish the service-layer extraction for login/users/mywines, following
    the same pattern already established in `wineService.js`.
-2. Decide the pagination/search strategy for the external catalogue before
-   building more frontend search UI against it — the backend can't yet
-   serve more than the first 100 wines.
+2. A basic search endpoint now exists (`GET /api/wines?search=`, §5.2), but
+   it only covers the first 100 GrapeMinds wines already in cache. Decide
+   the real pagination strategy for the external catalogue — full fetch
+   loop vs. GrapeMinds' own paginated/search API (needs verification) —
+   before the frontend search is trusted to cover the whole catalogue.
 3. Adopt Drizzle ORM + `drizzle-kit` (see [ADR-001](#adr-001-adopt-drizzle-orm-for-schema-migrations-and-query-building))
    before the schema changes again; folding new `ALTER TABLE` statements
    into `initDb()` indefinitely does not scale.
