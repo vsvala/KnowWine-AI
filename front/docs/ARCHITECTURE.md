@@ -12,6 +12,7 @@ and render automatically on GitHub/GitLab.
 | Build tool           | Vite 8                                     |
 | Routing              | react-router-dom v7                        |
 | HTTP client          | axios                                      |
+| Server-state / caching | TanStack Query (`@tanstack/react-query`) |
 | Component library    | MUI (`@mui/material`, `@mui/icons-material`) |
 | Map rendering        | maplibre-gl (globe on the Home page)       |
 | Unit / component tests | Vitest + Testing Library                 |
@@ -60,13 +61,17 @@ front/src
 
 ## 3. Composition root — provider tree
 
-`main.tsx` nests every context provider around `<App />`. Order matters: `AuthProvider` must
-wrap everything that needs `user`, and `MyWinesProvider` sits inside `WineListProvider` and
-`NotificationProvider` because `useMyWines` calls `useNotificationContext()` internally.
+`main.tsx` nests every context provider around `<App />`, with `QueryClientProvider` as the
+outermost wrapper — it must sit above every provider whose hook calls `useQuery` (currently just
+`WineListProvider`). Order matters below that too: `AuthProvider` must wrap everything that needs
+`user` (including `MyWinesProvider`, whose `useMyWines` now skips fetching until a user is
+logged in), and `MyWinesProvider` sits inside `WineListProvider` and `NotificationProvider`
+because `useMyWines` calls both `useAuthContext()` and `useNotificationContext()` internally.
 
 ```mermaid
 graph TD
-    Router["BrowserRouter"] --> AuthProvider
+    QCP["QueryClientProvider"] --> Router["BrowserRouter"]
+    Router --> AuthProvider
     AuthProvider --> NotificationProvider
     NotificationProvider --> WineListProvider
     WineListProvider --> MyWinesProvider
@@ -74,8 +79,8 @@ graph TD
 
     AuthProvider -.wraps.-> useAuth["useAuth()"]
     NotificationProvider -.wraps.-> useNotifications["useNotifications()"]
-    WineListProvider -.wraps.-> useWineList["useWineList()"]
-    MyWinesProvider -.wraps.-> useMyWines["useMyWines()"]
+    WineListProvider -.wraps.-> useWineList["useWineList()\n(useQuery, staleTime 24h)"]
+    MyWinesProvider -.wraps.-> useMyWines["useMyWines()\n(useEffect, gated on user)"]
 ```
 
 Each `*Context.tsx` follows the same pattern: it has no state of its own, it just runs the
@@ -124,6 +129,12 @@ flowchart LR
 
 In dev, `vite.config.ts` proxies `/api/*` to `http://localhost:3001`, so the frontend and
 backend can run on separate ports without CORS configuration.
+
+`useMyWines` (and every other hook except `useWineList`) still owns its fetch manually via
+`useState`/`useEffect`. `useWineList` is the one exception — it fetches through TanStack Query's
+`useQuery` instead, which is why it's the only hook not calling `useState` for its data. See
+§11 for the wine-search flow, which uses a second, independent `useQuery` call scoped to the
+search page rather than the shared `WineListContext`.
 
 ## 6. Sequence: login
 
@@ -181,10 +192,12 @@ sequenceDiagram
     Hook->>Notif: showNotification("Wine deleted!", "success")
 ```
 
-**Note on auth headers:** `services/myWines.ts` only attaches the `Authorization` header on
-`create` and `deleteWine`. `getAll` and `update` currently send no auth header — this is
-reflected in the code comment at the top of that file and is worth closing before relying on
-per-user data isolation for those two operations.
+**Note on auth headers:** `services/myWines.ts` attaches the `Authorization` header on all four
+operations (`getAll`, `create`, `update`, `deleteWine`). `getAll` previously sent no auth header
+at all, which combined with `MyWinesProvider` fetching unconditionally on app mount to produce a
+guaranteed `401` (and an "Unable to load myWines" toast) for every logged-out visitor — both are
+now fixed: `getAll` sends the token, and `useMyWines`'s fetch effect is gated on `user` from
+`useAuthContext()`, only firing once a session actually exists.
 
 ## 8. Component inventory
 
@@ -193,7 +206,7 @@ per-user data isolation for those two operations.
 | `App.tsx` | Top-level layout: nav bar, `<Routes>` table, wires all contexts together | — |
 | `pages/Home.tsx` | Landing page; renders a MapLibre GL globe | — |
 | `pages/LoginForm.tsx` | Username/password form, calls `useAuthContext().login` | — |
-| `pages/WineList.tsx` | Debounced search + MUI table over the full wine catalogue (`/wines`) | `wineList` |
+| `pages/WineList.tsx` | Debounced, backend-filtered search (own `useQuery`, §11) + MUI table over the full wine catalogue (`/wines`) | `wineList`, `isLoading` |
 | `pages/MyWines.tsx` | Search + list over the signed-in user's saved wines (`/mywines`) | — |
 | `pages/MyWineForm.tsx` | Form to add a wine to "my wines" (`/addwine`) | `addWine` |
 | `components/MyWine.tsx` | Single saved-wine detail row + delete button | `wine`, `id` |
@@ -223,9 +236,48 @@ npm run test:e2e     # playwright
 These aren't hidden — they're either TODOs already in the source or asymmetries worth knowing
 about before extending the app:
 
-- `services/myWines.ts`: `getAll` and `update` send no `Authorization` header (see §7).
 - `pages/MyWineForm.tsx`: the new wine's `id` is a hardcoded placeholder (`1 + 1`) rather than
   server-assigned — relies on the backend response overwriting it via `addWine`'s `.then`.
 - `App.tsx` has TODOs for preventing duplicate wines and for a "favourites" flow.
 - `pages/MyWines.tsx` has commented-out filters for wine type/region/grape that aren't wired up
   yet.
+- Wine search (§11) only searches the backend's already-cached ≤100-wine catalogue — it doesn't
+  reach wines beyond GrapeMinds' hardcoded page 1 (see `back/README.md` §8 Known Issues #2).
+
+## 11. Sequence: wine catalogue search
+
+Unlike the full catalogue (`useWineList`, shared via `WineListContext`), search results are
+fetched by a second, independent `useQuery` local to `pages/WineList.tsx` — the shared
+`wineList` (used by the table on the same page, and by `App.tsx` for `/wines/:id` lookups) is
+never filtered client-side or replaced by the search query.
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant WL as WineList.tsx
+    participant RQ as TanStack Query
+    participant Svc as services/wineList.ts
+    participant API as Backend GET /api/wines
+
+    U->>WL: types into search input
+    WL->>WL: setSearched(value)
+    WL->>WL: 300ms debounce → setDebouncedSearch(value)
+    alt debouncedSearch.trim().length >= 2
+        WL->>RQ: useQuery({ queryKey: ['wines','search',debouncedSearch], enabled: true })
+        RQ->>Svc: searchAll(debouncedSearch)  [cache miss for this term]
+        Svc->>API: GET /api/wines?search=<term>
+        API-->>Svc: filtered wine array (filtered server-side, see back/README.md §5.2)
+        Svc-->>RQ: wine array
+        RQ-->>WL: data → filteredWines
+    else fewer than 2 characters
+        WL->>RQ: useQuery({ ..., enabled: false })
+        Note over RQ: query does not fire; filteredWines stays []
+    end
+    WL->>U: renders "Search Results" list from filteredWines
+```
+
+Because `debouncedSearch` is part of the `queryKey`, TanStack Query treats each distinct search
+term as its own cache entry — re-searching a term already seen in this session returns instantly
+from cache instead of re-hitting the backend. `enabled` (not a client-side early return) is what
+suppresses the request for 0–1 character input, so no network call happens until the 2-character
+threshold is met.

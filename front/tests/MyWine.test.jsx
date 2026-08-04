@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import MyWine from '../src/components/MyWine';
+import { AuthProvider } from '../src/context/AuthContext';
 import { NotificationProvider } from '../src/context/NotificationContext';
 import { MyWinesProvider } from '../src/context/MyWinesContext';
 
@@ -12,11 +13,13 @@ test('renders content', () => {
 
   render(
     <MemoryRouter>
-      <NotificationProvider>
-        <MyWinesProvider>
-          <MyWine wine={mywine} id={1} />
-        </MyWinesProvider>
-      </NotificationProvider>
+      <AuthProvider>
+        <NotificationProvider>
+          <MyWinesProvider>
+            <MyWine wine={mywine} id={1} />
+          </MyWinesProvider>
+        </NotificationProvider>
+      </AuthProvider>
     </MemoryRouter>
   );
   //  screen.debug()
