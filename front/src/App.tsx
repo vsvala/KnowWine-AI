@@ -28,13 +28,13 @@ import { useWineListContext } from './context/WineListContext';
 const App = () => {
   const { user, logout } = useAuthContext();
   const { notification } = useNotificationContext();
-  const { myWines, addWine } = useMyWinesContext();
+  const { myWines, addWine, isLoading: myWinesLoading } = useMyWinesContext();
   const { wineList, isLoading: wineListLoading } = useWineListContext();
 
   // useEffect: runs after the first render to perform side-effects.
   // Here it fetches the items from the backend API and sets state.
   // Runs once because the dependency array is empty (`[]`).
-
+//TODO move to hooks 
   // useEffect(() => {
   //   console.log('useeffect get all users');
   //   userService
@@ -65,7 +65,6 @@ const App = () => {
 
   return (
     //sx is MUI's styling prop a shortcut for inline styles
-
     <div>
       <AppBar position="static" sx={{ backgroundColor: '#57244d', width: '100%' }}>
         <Toolbar sx={{ padding: 'auto', textAlign: 'center', justifyContent: 'center' }}>
@@ -77,7 +76,7 @@ const App = () => {
           </Button>
           {user ? (
             <Button color="inherit" component={Link} to="/mywines" sx={style}>
-              {' '}
+              {null}
               MyWines
             </Button>
           ) : (
@@ -100,19 +99,18 @@ const App = () => {
           )}
         </Toolbar>
       </AppBar>
-      <Container sx={{ padding: '30px; 0px ' }}>
+      <Container sx={{ padding: '30px 0 ' }}>
         <Notification notification={notification} />
         <Routes>
           <Route element={<PrivateRoute user={user} redirectPath="/login" />}>
             <Route path="/addwine" element={<MyWineForm addWine={addWine} />} />
             <Route path="/mywines" element={<MyWines />} />
-            <Route path="/mywines/:id" element={<MyWine id={wine?.id} wine={wine} />} />
+            <Route path="/mywines/:id" element={<MyWine id={wine?.id} wine={wine} isLoading={myWinesLoading} />} />
           </Route>
-
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<LoginForm />} />
           <Route path="/wines" element={<WineList wineList={wineList} isLoading={wineListLoading} />}/>
-          <Route path="/wines/:id" element={<WineDetail wine={wineListItem} />} />
+          <Route path="/wines/:id" element={<WineDetail wine={wineListItem} isLoading={wineListLoading} />} />
         </Routes>
       </Container>
       <Footer />

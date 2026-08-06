@@ -2,9 +2,11 @@ import type { Wine } from '../types/wine';
 
 interface WineDetailProps {
   wine: Wine | null | undefined;
+  isLoading?: boolean;
 }
 
-const WineDetail = ({ wine }: WineDetailProps) => {
+const WineDetail = ({ wine, isLoading }: WineDetailProps) => {
+  if (isLoading) return <p>Loading wine details...</p>;
   if (!wine) return <p>Wine not found.</p>;
 
   return (

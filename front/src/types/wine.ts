@@ -15,3 +15,8 @@ export type Wine = {
   producer: Producer;
   region: string | null;
 };
+
+export type WineListProps = {
+  wineList: Wine[];
+  isLoading?: boolean;
+}

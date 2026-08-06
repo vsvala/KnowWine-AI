@@ -5,14 +5,13 @@ import { useNotificationContext } from '../context/NotificationContext';
 import type { Wine } from '../types/wine';
 
 export const useWineList = () => {
-  //const [wineList, setWineList] = useState<Wine[]>([]);
+  // const [wineList, setWineList] = useState<Wine[]>([]);
   const { showNotification } = useNotificationContext();
- console.log("useWinelist hook")
+  console.log('useWinelist hook is called');
   const { data: wineList = [], error, isLoading } = useQuery<Wine[]>({
-  queryKey: ['wines'],
-  queryFn: wineListService.getAll,
-  staleTime: 24 * 60 * 60 * 1000, // or even Infinity, given the 60-day Redis TTL
- 
+    queryKey: ['wines'],
+    queryFn: wineListService.getAll,
+    staleTime: 24 * 60 * 60 * 1000, // or even Infinity, given the 60-day Redis TTL
   });
 
   useEffect(() => {

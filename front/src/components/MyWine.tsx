@@ -9,14 +9,18 @@ type Wine = {
 interface MyWineProps {
   wine: Wine | null | undefined;
   id: number | undefined;
+  isLoading?: boolean;
 }
 
-const MyWine = ({ wine, id }: MyWineProps) => {
+const MyWine = ({ wine, id, isLoading }: MyWineProps) => {
   const { deleteWine } = useMyWinesContext();
 
   //const id = Number(useParams().id);
   const navigate = useNavigate();
   //const wine = wines.find((w) => w.id === id);
+
+  if (isLoading) return <p>Loading wine...</p>;
+  if (!wine) return <p>Wine not found.</p>;
 
   const handleDelete = () => {
     if (id === undefined) return;
@@ -26,7 +30,6 @@ const MyWine = ({ wine, id }: MyWineProps) => {
       });
     }
   };
-  if (!wine) return <p>Wine not found.</p>;
 
   return (
     <li className="wine">

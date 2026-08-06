@@ -11,6 +11,7 @@ type Wine = {
 
 export const useMyWines = () => {
   const [myWines, setMyWines] = useState<Wine[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const { showNotification } = useNotificationContext();
   const { user } = useAuthContext();
 
@@ -23,7 +24,8 @@ export const useMyWines = () => {
       .then((initialMyWines) => {
         setMyWines(initialMyWines);
       })
-      .catch(() => showNotification('Unable to load myWines', 'error'));
+      .catch(() => showNotification('Unable to load myWines', 'error'))
+      .finally(() => setIsLoading(false));
   }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const addWine = (newWineObject: Wine) => {
@@ -56,5 +58,5 @@ export const useMyWines = () => {
         return false;
       });
   };
-  return { myWines, addWine, deleteWine };
+  return { myWines, addWine, deleteWine, isLoading };
 };
