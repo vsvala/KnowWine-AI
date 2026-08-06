@@ -1,3 +1,7 @@
+import { scan } from "react-scan";
+if (import.meta.env.DEV) {
+  scan();
+}
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import './index.css';
