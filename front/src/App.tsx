@@ -1,7 +1,7 @@
 import './App.css';
 
 import { Routes, Route, useMatch } from 'react-router-dom';
-import NavBAr from './components/common/NavBar';
+import NavBar from './components/common/NavBar';
 import Footer from './components/common/Footer';
 import MyWineForm from './pages/MyWineForm';
 import MyWines from './pages/MyWines';
@@ -43,7 +43,7 @@ const App = () => {
   return (
     //sx is MUI's styling prop a shortcut for inline styles
     <div>
-      <NavBAr />
+      <NavBar />
       <Container sx={{ padding: '30px 0 ' }}>
         <Notification notification={notification} />
         <Routes>
