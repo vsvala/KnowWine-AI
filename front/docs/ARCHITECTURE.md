@@ -43,6 +43,8 @@ front/src
 │   ├── myWines.ts              #   /api/mywines
 │   ├── users.ts                 #   /api/users
 │   └── wineList.ts               #   /api/wines
+├── types/                        # shared TypeScript types, decoupled from any one layer
+│   └── wine.ts                    #   Wine, Producer — used by hooks, pages, and components alike
 ├── pages/                       # route-level screens
 │   ├── Home.tsx
 │   ├── LoginForm.tsx
@@ -50,14 +52,22 @@ front/src
 │   ├── MyWines.tsx
 │   └── WineList.tsx
 └── components/                  # reusable / presentational pieces
-    ├── common/PrivateRoute.tsx
-    ├── Footer.tsx
-    ├── MyWine.tsx
-    ├── Notification.tsx
-    ├── Toggable.tsx
-    ├── WineSingle.tsx
-    └── WineVisualization.tsx
+    ├── common/                    # domain-agnostic — no wine/auth knowledge, safe to use anywhere
+    │   ├── Footer.tsx
+    │   ├── Notification.tsx
+    │   └── Togglable.tsx
+    ├── MyWine.tsx                 # still domain-specific, but a "component" like any other
+    ├── PrivateRoute.tsx
+    ├── WineCard.tsx
+    ├── WineDetail.tsx
+    └── WineVisualization.tsx      # currently unused — not imported by any page or route
 ```
+
+**On the structure itself:** this is approximately a **type-based layout** — folders are named
+after what *kind* of file lives in them (`context/`, `hooks/`, `services/`, `pages/`,
+`components/`), not after a domain like `wines/` or `auth/`. That's a deliberate,
+size-appropriate choice: at ~30 source files.
+
 
 ## 3. Composition root — provider tree
 
@@ -109,7 +119,7 @@ graph LR
     PrivateRoute --> MyWineDetail
 ```
 
-`PrivateRoute` (`components/common/PrivateRoute.tsx`) is a layout route: it renders
+`PrivateRoute` (`components/PrivateRoute.tsx`) is a layout route: it renders
 `<Outlet />` when `user` is truthy, otherwise it redirects. `App.tsx` reads `user` from
 `useAuthContext()` and passes it in, and also toggles which nav buttons are shown.
 
@@ -209,13 +219,14 @@ now fixed: `getAll` sends the token, and `useMyWines`'s fetch effect is gated on
 | `pages/WineList.tsx` | Debounced, backend-filtered search (own `useQuery`, §11) + MUI table over the full wine catalogue (`/wines`) | `wineList`, `isLoading` |
 | `pages/MyWines.tsx` | Search + list over the signed-in user's saved wines (`/mywines`) | — |
 | `pages/MyWineForm.tsx` | Form to add a wine to "my wines" (`/addwine`) | `addWine` |
-| `components/MyWine.tsx` | Single saved-wine detail row + delete button | `wine`, `id` |
-| `components/WineSingle.tsx` | Single catalogue-wine detail row | `wine` |
-| `components/common/PrivateRoute.tsx` | Route guard — redirects unauthenticated users | `user`, `redirectPath` |
-| `components/Notification.tsx` | Renders the current toast from `NotificationContext` as an MUI `Alert` | `notification` |
-| `components/Toggable.tsx` | Generic show/hide wrapper (button ↔ children) | `buttonLabel`, `children` |
-| `components/WineVisualization.tsx` | Decorative animated SVG wine glass used on marketing surfaces | — |
-| `components/Footer.tsx` | Static site footer | — |
+| `components/MyWine.tsx` | Single saved-wine detail row + delete button (route target for `/mywines/:id`) | `wine`, `id` |
+| `components/WineCard.tsx` | Compact table row for one catalogue wine, links to its detail page | `wine` |
+| `components/WineDetail.tsx` | Full single-wine detail view (route target for `/wines/:id`) — shows type, subtype, color, residual sugar, producer, region | `wine` |
+| `components/PrivateRoute.tsx` | Route guard — redirects unauthenticated users | `user`, `redirectPath` |
+| `components/common/Notification.tsx` | Renders the current toast from `NotificationContext` as an MUI `Alert` | `notification` |
+| `components/common/Togglable.tsx` | Generic show/hide wrapper (button ↔ children) | `buttonLabel`, `children` |
+| `components/WineVisualization.tsx` | Decorative animated SVG wine glass — currently unused, not wired into any page | — |
+| `components/common/Footer.tsx` | Static site footer | — |
 
 ## 9. Testing
 

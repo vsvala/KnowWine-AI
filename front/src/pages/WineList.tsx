@@ -2,6 +2,8 @@ import { useEffect, useState, type ChangeEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import wineListService from '../services/wineList';
+import WineCard from '../components/WineCard';
+import type { Wine } from '../types/wine';
 
 import {
   Table,
@@ -14,20 +16,8 @@ import {
 } from '@mui/material';
 
 //import LoginForm from './LoginForm';
-//import Toggable from './Toggable';
 //import winesListService from '../services/WinesList';
 //import MyWineForm from './MyWineForm';
-
-type Wine = {
-  id: number;
-  display_name: string;
-  color: string;
-  type: string;
-  sub_type: string;
-  residual_sugar: string | null;
-  producer: object;
-  region: string | null;
-};
 
 interface WineListProps {
   wineList: Wine[];
@@ -71,7 +61,7 @@ const WineList = ({ wineList, isLoading }: WineListProps) => {
         <ul>
           {filteredWines.map((wine) => (
             <li key={wine.id}>
-              <Link to={`/mywines/${wine.id}`}>{wine.display_name} </Link>
+              <Link to={`/wines/${wine.id}`}>{wine.display_name} </Link>
               {/* <strong>{wine.name}</strong>: {wine.description}{' '} */}
               {/* <button onClick={() => deleteItem(item.id)}>Delete</button> */}
             </li>
@@ -97,15 +87,7 @@ const WineList = ({ wineList, isLoading }: WineListProps) => {
               </TableHead>
               <TableBody>
                 {wineList.map((wine: Wine) => (
-                  <TableRow key={wine.id}>
-                    <TableCell>
-                      <Link to={`/wines/${wine.id}`}>
-                        <strong>{wine.display_name}</strong>{' '}
-                      </Link>
-                    </TableCell>
-                    <TableCell sx={{ color: '#fff' }}>{wine.type}</TableCell>
-                    <TableCell sx={{ color: '#fff' }}>{wine.sub_type}</TableCell>
-                  </TableRow>
+                  <WineCard key={wine.id} wine={wine} />
                 ))}
               </TableBody>
             </Table>

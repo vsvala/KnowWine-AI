@@ -1,19 +1,19 @@
 import './App.css';
 
 import { Routes, Route, Link, useMatch } from 'react-router-dom';
-import Footer from './components/Footer';
+import Footer from './components/common/Footer';
 import MyWineForm from './pages/MyWineForm';
 import MyWines from './pages/MyWines';
-import WineSingle from './components/WineSingle';
+import WineDetail from './components/WineDetail';
 
 import WineList from './pages/WineList';
 import MyWine from './components/MyWine';
 import Home from './pages/Home';
 import LoginForm from './pages/LoginForm';
 import { Container, AppBar, Toolbar, Button } from '@mui/material';
-import Notification from './components/Notification';
+import Notification from './components/common/Notification';
 //import { useNavigate } from 'react-router-dom';
-import PrivateRoute from './components/common/PrivateRoute';
+import PrivateRoute from './components/PrivateRoute';
 import { useAuthContext } from './context/AuthContext';
 import { useNotificationContext } from './context/NotificationContext';
 import { useMyWinesContext } from './context/MyWinesContext';
@@ -105,17 +105,14 @@ const App = () => {
         <Routes>
           <Route element={<PrivateRoute user={user} redirectPath="/login" />}>
             <Route path="/addwine" element={<MyWineForm addWine={addWine} />} />
-            <Route path="/mywines/:id" element={<MyWine id={wine?.id} wine={wine} />} />
             <Route path="/mywines" element={<MyWines />} />
+            <Route path="/mywines/:id" element={<MyWine id={wine?.id} wine={wine} />} />
           </Route>
 
-          <Route
-            path="/wines"
-            element={<WineList wineList={wineList} isLoading={wineListLoading} />}
-          />
-          <Route path="/wines/:id" element={<WineSingle wine={wineListItem} />} />
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<LoginForm />} />
+          <Route path="/wines" element={<WineList wineList={wineList} isLoading={wineListLoading} />}/>
+          <Route path="/wines/:id" element={<WineDetail wine={wineListItem} />} />
         </Routes>
       </Container>
       <Footer />

@@ -6,12 +6,12 @@ type Wine = {
   name: string;
   description: string;
 };
-interface MyWinesProps {
+interface MyWineProps {
   wine: Wine | null | undefined;
   id: number | undefined;
 }
 
-const MyWine = ({ wine, id }: MyWinesProps) => {
+const MyWine = ({ wine, id }: MyWineProps) => {
   const { deleteWine } = useMyWinesContext();
 
   //const id = Number(useParams().id);

@@ -2,25 +2,17 @@ import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import wineListService from '../services/wineList';
 import { useNotificationContext } from '../context/NotificationContext';
+import type { Wine } from '../types/wine';
 
-type WineList = {
-  id: number;
-  display_name: string;
-  color: string;
-  type: string;
-  sub_type: string;
-  residual_sugar: string | null;
-  producer: object;
-  region: string | null;
-};
 export const useWineList = () => {
-  //const [wineList, setWineList] = useState<WineList[]>([]);
+  //const [wineList, setWineList] = useState<Wine[]>([]);
   const { showNotification } = useNotificationContext();
-
-  const { data: wineList = [], error, isLoading } = useQuery<WineList[]>({
+ console.log("useWinelist hook")
+  const { data: wineList = [], error, isLoading } = useQuery<Wine[]>({
   queryKey: ['wines'],
   queryFn: wineListService.getAll,
   staleTime: 24 * 60 * 60 * 1000, // or even Infinity, given the 60-day Redis TTL
+ 
   });
 
   useEffect(() => {
