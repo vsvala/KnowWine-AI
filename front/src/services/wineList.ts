@@ -10,8 +10,8 @@ import axios from 'axios';
 const baseUrl = '/api/wines';
 //'http://localhost:3001/api/wines'
 
-const getAll = () => {
-  const request = axios.get(baseUrl);
+const getAll = (page: number = 1) => {
+  const request = axios.get(baseUrl, { params: { page } });
   return request.then((response) => response.data);
 };
 

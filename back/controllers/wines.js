@@ -3,8 +3,8 @@ const wineService = require('../services/wineService');
 
 winesRouter.get('/', async (req, res, next) => {
   try {
-    const { search } = req.query;
-    const allWines = await wineService.getAllWines(search);
+    const { search, page } = req.query;
+    const allWines = await wineService.getAllWines(search, page);
     res.json(allWines);
   } catch (error) {
     next(error);

@@ -5,6 +5,7 @@ const WINES_CACHE_KEY = 'grapeminds:wines';
 const CACHE_TTL = 5184000; // 2kk minuuttia sekunteina
 const BASE_URL = process.env.GRAPEMINDS_URL;
 console.log('url', process.env.GRAPEMINDS_URL);
+const MAX_BROWSABLE_PAGES = 5;
 
 //dev and test uses local json-file, production uses redis cache
 
@@ -47,18 +48,19 @@ const dedupedFetch = (key, fetchFn) => {
   return promise;
 };
 
-const fetchWinesFromApi = async () => {
+const fetchWinesFromApi = async (page) => {
   // 1.check cache first
-  const cached = await redis.get(WINES_CACHE_KEY);
+  const cacheKey = `${WINES_CACHE_KEY}:page:${page}`;
+  const cached = await redis.get(cacheKey);
   if (cached) {
     console.log('wines from cache');
     // changed string from redis back to json object
     return JSON.parse(cached);
   }
   // // 2. empty Cache t → call API
-  return dedupedFetch(WINES_CACHE_KEY, async () => {
+  return dedupedFetch(cacheKey, async () => {
     await trackApiCall();
-    const response = await fetch(`${BASE_URL}/wines?per_page=100&page=1`, {
+    const response = await fetch(`${BASE_URL}/wines?per_page=100&page=${page}`, {
       headers: {
         Authorization: `Bearer ${process.env.GRAPEMINDS_API_KEY}`,
       },
@@ -68,7 +70,7 @@ const fetchWinesFromApi = async () => {
     }
     const wines = await response.json();
     // 3. save Redis TTL, redis saves only text
-    await redis.set(WINES_CACHE_KEY, JSON.stringify(wines.data), 'EX', CACHE_TTL);
+    await redis.set(cacheKey, JSON.stringify(wines.data), 'EX', CACHE_TTL);
     return wines.data;
   });
 };
@@ -96,13 +98,18 @@ const searchWinesFromApi = async (query) => {
   });
 };
 
-const getAllWines = async (search) => {
+const getAllWines = async (search, page) => {
   if (!search) {
     // No search term: return the full browsable catalogue - the local
     // fixture in dev/test, or the Redis-cached (60-day TTL) GrapeMinds
     // page-1 result in production. Not a search, so no GrapeMinds
     // /wines/search call here.
-    return process.env.NODE_ENV !== 'production' ? wines.data : await fetchWinesFromApi();
+    if (process.env.NODE_ENV !== 'production') {
+      return wines.data; // dev/test does not have pages
+    }
+    //makes sure it's positive and number and not more than 5
+    const clampedPage = Math.min(Math.max(Number(page) || 1, 1), MAX_BROWSABLE_PAGES);
+    return fetchWinesFromApi(clampedPage);
   }
 
   if (process.env.NODE_ENV !== 'production') {
