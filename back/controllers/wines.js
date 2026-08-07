@@ -1,10 +1,10 @@
 const winesRouter = require('express').Router();
-const winesService = require('../services/winesService');
+const wineService = require('../services/wineService');
 
 winesRouter.get('/', async (req, res, next) => {
   try {
     const { search } = req.query;
-    const allWines = await winesService.getAllWines(search);
+    const allWines = await wineService.getAllWines(search);
     res.json(allWines);
   } catch (error) {
     next(error);

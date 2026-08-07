@@ -1,5 +1,5 @@
 const router = require('express').Router();
-const myWinesService = require('../services/myWinesService');
+const myWineService = require('../services/myWineService');
 const authenticate = require('../utils/authenticate');
 const { body } = require('express-validator');
 const { handleValidationErrors } = require('../utils/validate');
@@ -28,7 +28,7 @@ const createWineValidation = [
 
 router.get('/', authenticate, async (req, res, next) => {
   try {
-    const result = await myWinesService.getAllMyWines(req.user.id);
+    const result = await myWineService.getAllMyWines(req.user.id);
     res.json(result);
   } catch (error) {
     next(error);
@@ -41,7 +41,7 @@ router.get('/:id', authenticate, async (req, res, next) => {
     if (Number.isNaN(id)) {
       return res.status(400).json({ error: 'Invalid ID' });
     }
-    const result = await myWinesService.getMyWineById(id);
+    const result = await myWineService.getMyWineById(id);
     if (!result) {
       return res.status(404).json({ error: 'Item not found' });
     }
@@ -62,7 +62,7 @@ router.post(
   async (req, res, next) => {
     try {
       const { name, description } = req.body;
-      const newResult = await myWinesService.createMyWine({
+      const newResult = await myWineService.createMyWine({
         name,
         description,
         userId: req.user.id,
@@ -80,14 +80,14 @@ router.delete('/:id', authenticate, async (req, res, next) => {
     if (Number.isNaN(id)) {
       return res.status(400).json({ error: 'Invalid ID' });
     }
-    const wine = await myWinesService.getMyWineById(id);
+    const wine = await myWineService.getMyWineById(id);
     if (!wine) {
       return res.status(404).json({ error: 'wine not found' });
     }
     if (Number(wine.user_id) !== Number(req.user.id)) {
       return res.status(403).json({ error: 'not authorized' });
     }
-    await myWinesService.deleteMyWineById(id);
+    await myWineService.deleteMyWineById(id);
     res.status(204).end();
   } catch (error) {
     next(error);
