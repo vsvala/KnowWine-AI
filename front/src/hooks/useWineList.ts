@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import wineListService from '../services/wineList';
 import { useNotificationContext } from '../context/NotificationContext';
 import type { Wine } from '../types/wine';
+import { WINES_STALE_TIME_MS, WINES_GC_TIME_MS } from './wineQueryConfig';
 
 export const useWineList = () => {
   const { showNotification } = useNotificationContext();
@@ -15,7 +16,8 @@ export const useWineList = () => {
   } = useQuery<Wine[]>({
     queryKey: ['wines'],
     queryFn: wineListService.getAll,
-    staleTime: 24 * 60 * 60 * 1000, // or even Infinity, given the 60-day Redis TTL
+    staleTime: WINES_STALE_TIME_MS,
+    gcTime: WINES_GC_TIME_MS,
   });
 
   useEffect(() => {

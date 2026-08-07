@@ -1,10 +1,8 @@
-import { useEffect, useState, type ChangeEvent } from 'react';
+import type { ChangeEvent } from 'react';
 import { Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import wineListService from '../services/wineList';
 import WineCard from '../components/WineCard';
-import type { Wine } from '../types/wine';
 import { useWineListContext } from '../context/WineListContext';
+import { useWineSearch } from '../hooks/useWineSearch';
 import {
   Table,
   TableBody,
@@ -15,55 +13,32 @@ import {
   Paper,
 } from '@mui/material';
 
-//import LoginForm from './LoginForm';
-//import winesListService from '../services/WinesList';
-//import MyWineForm from './MyWineForm';
-
 const WineList = () => {
-  const [searched, setSearched] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
-  const { wineList, isLoading} = useWineListContext();
-
-
-  useEffect(() => {
-    const timeOutId = setTimeout(() => {
-      setDebouncedSearch(searched);
-    }, 300);
-
-    return () => clearTimeout(timeOutId);
-  }, [searched]);
+  const { wineList, isLoading } = useWineListContext();
+  const { searchTerm, setSearchTerm, searchResults } = useWineSearch();
 
   const handleSearch = (e: ChangeEvent<HTMLInputElement>) => {
-    setSearched(e.target.value);
+    setSearchTerm(e.target.value);
   };
-
-
-  const { data: filteredWines = [] } = useQuery<Wine[]>({
-    queryKey: ['wines', 'search', debouncedSearch],
-    queryFn: () => wineListService.searchAll(debouncedSearch),
-    enabled: debouncedSearch.trim().length >= 2,
-  });
 
   return (
     <div>
       <h2>Search wines</h2>
 
       <div className="search-container">
-        <input type="text" placeholder="Search.." value={searched} onChange={handleSearch} />
+        <input type="text" placeholder="Search.." value={searchTerm} onChange={handleSearch} />
       </div>
 
       <div className="search-container">
         <p>Search Results</p>
         <ul>
-          {filteredWines.map((wine) => (
+          {searchResults.map((wine) => (
             <li key={wine.id}>
               <Link to={`/wines/${wine.id}`}>{wine.display_name} </Link>
-              {/* <strong>{wine.name}</strong>: {wine.description}{' '} */}
-              {/* <button onClick={() => deleteItem(item.id)}>Delete</button> */}
             </li>
           ))}
         </ul>
-        {searched.trim() !== '' && filteredWines.length === 0 && <p>No matching wines found.</p>}
+        {searchTerm.trim() !== '' && searchResults.length === 0 && <p>No matching wines found.</p>}
       </div>
 
       <div className="search-container">
@@ -82,7 +57,7 @@ const WineList = () => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {wineList.map((wine: Wine) => (
+                {wineList.map((wine) => (
                   <WineCard key={wine.id} wine={wine}  />
                 ))}
               </TableBody>
@@ -96,15 +71,3 @@ const WineList = () => {
   );
 };
 export default WineList;
-
-    //     const filteredWines =
-    // //debouncedSearch.trim() === ''
-    // debouncedSearch.trim().length < 2
-    //   ? []
-      // : wineList.filter((wine) => {
-      //     const lowerSearch = debouncedSearch.toLowerCase().trim();
-      //     return (
-      //       wine.display_name.toLowerCase().includes(lowerSearch) ||
-      //       wine.type.toLowerCase().includes(lowerSearch)
-     //     );
-     //  });
