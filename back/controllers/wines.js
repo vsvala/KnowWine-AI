@@ -11,4 +11,14 @@ winesRouter.get('/', async (req, res, next) => {
   }
 });
 
+winesRouter.get('/:id', async (req, res, next) => {
+  try {
+    const wine = await wineService.getWineById(req.params.id);
+    if (!wine) return res.status(404).json({ error: 'Wine not found' });
+    res.json(wine);
+  } catch (error) {
+    next(error);
+  }
+});
+
 module.exports = winesRouter;
