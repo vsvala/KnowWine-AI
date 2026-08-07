@@ -1,20 +1,13 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { TextField, Button } from '@mui/material';
+import { useMyWinesContext } from '../context/MyWinesContext';
+import type { MyWine } from '../types/wine';
 
-type Wine = {
-  id: number;
-  name: string;
-  description: string;
-};
-
-interface MyWineFormProps {
-  addWine: (wine: Wine) => void;
-}
-
-const MyWineForm = ({ addWine }: MyWineFormProps) => {
+const MyWineForm = () => {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const { addWine } = useMyWinesContext();
   const navigate = useNavigate();
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -25,18 +18,19 @@ const MyWineForm = ({ addWine }: MyWineFormProps) => {
     setDescription(e.target.value);
   };
 
-  const submitWine = (e: React.SyntheticEvent<HTMLFormElement>) => {
+  const submitWine = async (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
-    console.log('button clicked', e.target);
-    const newWineObject: Wine = {
+    const newWineObject: MyWine = {
       id: 1 + 1, // This is just a placeholder. In a real app, the backend would assign the ID.
       name: name,
       description: description,
     };
-    addWine(newWineObject);
-    setName('');
-    setDescription('');
-    navigate('/mywines');
+    const success = await addWine(newWineObject);
+    if (success) {
+      setName('');
+      setDescription('');
+      navigate('/mywines');
+    }
   };
 
   return (

@@ -1,16 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import axios from 'axios';
 import { useNotificationContext } from '../context/NotificationContext';
 import { useAuthContext } from '../context/AuthContext';
 import myWineService from '../services/myWines';
-
-type Wine = {
-  id: number;
-  name: string;
-  description: string;
-};
+import type { MyWine } from '../types/wine';
 
 export const useMyWines = () => {
-  const [myWines, setMyWines] = useState<Wine[]>([]);
+  const [myWines, setMyWines] = useState<MyWine[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { showNotification } = useNotificationContext();
   const { user } = useAuthContext();
@@ -19,44 +15,57 @@ export const useMyWines = () => {
     // Skip the fetch until a user is logged in - the endpoint requires
     // auth, and firing it while logged out just produces a spurious 401.
     if (!user) return;
-    myWineService
-      .getAll()
-      .then((initialMyWines) => {
+    const fetchMyWines = async () => {
+      try {
+        const initialMyWines = await myWineService.getAll();
         setMyWines(initialMyWines);
-      })
-      .catch(() => showNotification('Unable to load myWines', 'error'))
-      .finally(() => setIsLoading(false));
+      } catch {
+        showNotification('Unable to load myWines', 'error');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchMyWines();
   }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const addWine = (newWineObject: Wine) => {
-    console.log(newWineObject);
-    myWineService
-      .create(newWineObject)
-      .then((returnedWine) => {
+  // prevent unnecessary re-renders by memoizing the addWine and deleteWine functions
+  const addWine = useCallback(
+    async (newWineObject: MyWine) => {
+      try {
+        const returnedWine = await myWineService.create(newWineObject);
         setMyWines((prev) => prev.concat(returnedWine));
         showNotification(`Wine '${returnedWine.name}' added!`, 'success');
-      })
-      .catch((err) => {
-        const message = err.response?.data?.error ?? 'Error adding item';
-        showNotification(message, 'error');
-      });
-  };
-  const deleteWine = (id: number) => {
-    const wineToDelete = myWines.find((item) => item.id === id);
-    console.log('delete wine with id', id, wineToDelete);
-
-    return myWineService
-      .deleteWine(id)
-      .then(() => {
-        console.log('wine deleted', id);
+        return true;
+      } catch (error) {
+        const message = axios.isAxiosError<{ error: string }>(error)
+          ? error.response?.data?.error
+          : undefined;
+        showNotification(message ?? 'Error adding item', 'error');
+        return false;
+      }
+    },
+    [showNotification]
+  );
+  // prevent unnecessary re-renders by memoizing the addWine and deleteWine functions
+  const deleteWine = useCallback(
+    async (id: number) => {
+      const wineToDelete = myWines.find((item) => item.id === id);
+      try {
+        await myWineService.deleteWine(id);
         setMyWines((prev) => prev.filter((item) => item.id !== id));
         showNotification(`Wine '${wineToDelete?.name}' deleted!`, 'success');
         return true;
-      })
-      .catch(() => {
+      } catch {
         showNotification('Error deleting item', 'error');
         return false;
-      });
-  };
-  return { myWines, addWine, deleteWine, isLoading };
+      }
+    },
+    [myWines, showNotification]
+  );
+  
+// Return a memoized object containing the state and functions to prevent unnecessary re-renders
+  return useMemo(
+    () => ({ myWines, addWine, deleteWine, isLoading }),
+    [myWines, addWine, deleteWine, isLoading]
+  );
 };
