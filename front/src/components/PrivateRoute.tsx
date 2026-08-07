@@ -1,18 +1,14 @@
 import { Navigate, Outlet } from 'react-router-dom';
+import { useAuthContext } from '../context/AuthContext';
 
-type User = {
-  id: number;
-  name: string;
-  username: string;
-};
 
 type PrivateRouteProps = {
-  user: User | null;
   redirectPath?: string;
 };
 
-const PrivateRoute = ({ user, redirectPath = '/' }: PrivateRouteProps) => {
+const PrivateRoute = ({ redirectPath = '/' }: PrivateRouteProps) => {
   //console.log(user)
+const { user } = useAuthContext();
 
   return user ? <Outlet /> : <Navigate to={redirectPath} replace />;
 };

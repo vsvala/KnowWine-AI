@@ -1,10 +1,9 @@
 import { Alert } from '@mui/material';
+import { useNotificationContext } from '../../context/NotificationContext';
 
-type NotificationProps = {
-  notification: { text: string; type: 'success' | 'error' | 'info' | 'warning' } | null;
-};
 
-const Notification = ({ notification }: NotificationProps) => {
+const Notification = () => {
+ const { notification } = useNotificationContext();
   if (notification === null) {
     return null;
   }

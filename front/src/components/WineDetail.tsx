@@ -1,11 +1,12 @@
-import type { Wine } from '../types/wine';
+import { useWineListContext } from '../context/WineListContext';
+import { useParams } from 'react-router-dom';
 
-interface WineDetailProps {
-  wine: Wine | null | undefined;
-  isLoading?: boolean;
-}
 
-const WineDetail = ({ wine, isLoading }: WineDetailProps) => {
+const WineDetail = () => {
+const { id } = useParams();
+const { wineList, isLoading } = useWineListContext();
+const wine = wineList.find((w) => w.id === Number(id));
+
   if (isLoading) return <p>Loading wine details...</p>;
   if (!wine) return <p>Wine not found.</p>;
 

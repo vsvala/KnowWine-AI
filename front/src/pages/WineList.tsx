@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import wineListService from '../services/wineList';
 import WineCard from '../components/WineCard';
 import type { Wine } from '../types/wine';
-
+import { useWineListContext } from '../context/WineListContext';
 import {
   Table,
   TableBody,
@@ -19,15 +19,11 @@ import {
 //import winesListService from '../services/WinesList';
 //import MyWineForm from './MyWineForm';
 
-interface WineListProps {
-  wineList: Wine[];
-  isLoading?: boolean;
-}
-
-const WineList = ({ wineList, isLoading }: WineListProps) => {
+const WineList = () => {
   const [searched, setSearched] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  
+  const { wineList, isLoading} = useWineListContext();
+
 
   useEffect(() => {
     const timeOutId = setTimeout(() => {
@@ -87,7 +83,7 @@ const WineList = ({ wineList, isLoading }: WineListProps) => {
               </TableHead>
               <TableBody>
                 {wineList.map((wine: Wine) => (
-                  <WineCard key={wine.id} wine={wine} />
+                  <WineCard key={wine.id} wine={wine}  />
                 ))}
               </TableBody>
             </Table>

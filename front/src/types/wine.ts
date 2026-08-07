@@ -16,6 +16,12 @@ export type Wine = {
   region: string | null;
 };
 
+export type MyWine = {
+  id: number;
+  name: string;
+  description: string;
+};
+
 export type WineListProps = {
   wineList: Wine[];
   isLoading?: boolean;

@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { useMyWinesContext } from '../context/MyWinesContext';
 //import { useAuthContext } from '../context/AuthContext';
 
-
 const MyWines = () => {
   //const [wines, setWines] = useState<Wine[]>([]);
   //const [users, setUsers] = useState<User[]>([]);
