@@ -15,6 +15,7 @@ const WineCard = ({ wine }: WineCardProps) => (
     </TableCell>
     <TableCell sx={{ color: '#fff' }}>{wine.type}</TableCell>
     <TableCell sx={{ color: '#fff' }}>{wine.sub_type}</TableCell>
+    <TableCell sx={{ color: '#fff' }}>{wine.color}</TableCell>
   </TableRow>
 );
 

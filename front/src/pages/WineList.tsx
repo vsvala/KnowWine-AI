@@ -1,7 +1,7 @@
 import WineCard from '../components/WineCard';
 import { useWineListContext } from '../context/WineListContext';
 import { useWineSearch } from '../hooks/useWineSearch';
-import type { Wine } from '../types/wine';
+import type { WineSearchResult } from '../types/wine';
 import SearchList from '../components/common/SearchList';
 import {
   Table,
@@ -15,14 +15,16 @@ import {
 
 const WineList = () => {
   const { wineList, isLoading } = useWineListContext();
-  const { searchTerm, setSearchTerm, searchResults } = useWineSearch();
+  const { searchTerm, setSearchTerm, searchResults, submitSearch, hasSearched } = useWineSearch();
 
 
   return (
     <div>  
-      <SearchList<Wine>
+      <SearchList<WineSearchResult>
         searchTerm={searchTerm}
         onSearchTermChange={setSearchTerm}
+        onSubmit={submitSearch}
+        hasSearched={hasSearched}
         results={searchResults}
         itemKey={(wine) => wine.id}
         itemHref={(wine) => `/wines/${wine.id}`}
@@ -41,6 +43,8 @@ const WineList = () => {
                   <TableCell sx={{ color: '#fff' }}>Name</TableCell>
                   <TableCell sx={{ color: '#fff' }}>Type</TableCell>
                   <TableCell sx={{ color: '#fff' }}>Subtype</TableCell>
+                  <TableCell sx={{ color: '#fff' }}>Color</TableCell>
+
                 </TableRow>
               </TableHead>
               <TableBody>

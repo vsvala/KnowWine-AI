@@ -1,28 +1,30 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import wineListService from '../services/wineList';
-import type { Wine } from '../types/wine';
+import type { WineSearchResult } from '../types/wine';
 import { WINES_STALE_TIME_MS, WINES_GC_TIME_MS } from './wineQueryConfig';
 
-const DEBOUNCE_MS = 300;
-const MIN_SEARCH_LENGTH = 1;
+const MIN_SEARCH_LENGTH = 3;
 
+// Search hits GrapeMinds' metered API (250 requests/month), so results are
+// fetched on explicit submit rather than live as the user types - typing
+// "riesling" with a couple of pauses would otherwise fire several separate
+// (separately billed) queries for one search intent.
 export const useWineSearch = () => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [submittedSearch, setSubmittedSearch] = useState('');
 
-  useEffect(() => {
-    const timeoutId = setTimeout(() => setDebouncedSearch(searchTerm), DEBOUNCE_MS);
-    return () => clearTimeout(timeoutId);
-  }, [searchTerm]);
+  const submitSearch = () => setSubmittedSearch(searchTerm.trim());
 
-  const { data: searchResults = [] } = useQuery<Wine[]>({
-    queryKey: ['wines', 'search', debouncedSearch],
-    queryFn: () => wineListService.searchAll(debouncedSearch),
-    enabled: debouncedSearch.trim().length >= MIN_SEARCH_LENGTH,
+  const hasSearched = submittedSearch.length >= MIN_SEARCH_LENGTH;
+
+  const { data: searchResults = [] } = useQuery<WineSearchResult[]>({
+    queryKey: ['wines', 'search', submittedSearch],
+    queryFn: () => wineListService.searchAll(submittedSearch),
+    enabled: hasSearched,
     staleTime: WINES_STALE_TIME_MS,
     gcTime: WINES_GC_TIME_MS,
   });
 
-  return { searchTerm, setSearchTerm, searchResults };
+  return { searchTerm, setSearchTerm, searchResults, submitSearch, hasSearched };
 };

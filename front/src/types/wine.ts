@@ -26,3 +26,12 @@ export type WineListProps = {
   wineList: Wine[];
   isLoading?: boolean;
 }
+
+export type WineSearchResult = {
+  id: number;
+  lwin: string | null;
+  display_name: string;
+  color: string;
+  producer_name: string;
+};
+
