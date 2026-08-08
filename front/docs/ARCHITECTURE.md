@@ -36,15 +36,18 @@ front/src
 ├── hooks/                    # the actual state + logic behind each context
 │   ├── useAuth.ts
 │   ├── useMyWines.ts
+│   ├── useMyWineSearch.ts    # search/filter over the signed-in user's own wines (no debounce — in-memory, free)
 │   ├── useNotifications.ts
-│   └── useWineList.ts
+│   ├── useWineList.ts        # paginated catalogue browsing (page 1-5, see §11)
+│   ├── useWineSearch.ts      # submit-triggered catalogue search (see §11)
+│   └── wineQueryConfig.ts    # shared TanStack Query staleTime/gcTime for wine data (60 days)
 ├── services/                  # axios wrappers, one per backend REST resource
 │   ├── login.ts               #   /api/login
 │   ├── myWines.ts              #   /api/mywines
 │   ├── users.ts                 #   /api/users
-│   └── wineList.ts               #   /api/wines
+│   └── wineList.ts               #   /api/wines, /api/wines/:id
 ├── types/                        # shared TypeScript types, decoupled from any one layer
-│   └── wine.ts                    #   Wine, Producer — used by hooks, pages, and components alike
+│   └── wine.ts                    #   Wine, Producer, MyWine, WineSearchResult — used by hooks, pages, and components alike
 ├── pages/                       # route-level screens
 │   ├── Home.tsx
 │   ├── LoginForm.tsx
@@ -55,11 +58,12 @@ front/src
     ├── common/                    # domain-agnostic — no wine/auth knowledge, safe to use anywhere
     │   ├── Footer.tsx
     │   ├── Notification.tsx
+    │   ├── SearchList.tsx         # shared search box + results list, used by both WineList and MyWines
     │   └── Togglable.tsx
     ├── MyWine.tsx                 # still domain-specific, but a "component" like any other
     ├── PrivateRoute.tsx
     ├── WineCard.tsx
-    ├── WineDetail.tsx
+    ├── WineDetail.tsx             # fetches its own wine by id (GET /api/wines/:id) — not read from WineListContext
     └── WineVisualization.tsx      # currently unused — not imported by any page or route
 ```
 
@@ -89,7 +93,7 @@ graph TD
 
     AuthProvider -.wraps.-> useAuth["useAuth()"]
     NotificationProvider -.wraps.-> useNotifications["useNotifications()"]
-    WineListProvider -.wraps.-> useWineList["useWineList()\n(useQuery, staleTime 24h)"]
+    WineListProvider -.wraps.-> useWineList["useWineList()\n(useQuery, paginated 1-5, staleTime 60d)"]
     MyWinesProvider -.wraps.-> useMyWines["useMyWines()\n(useEffect, gated on user)"]
 ```
 
@@ -216,13 +220,14 @@ now fixed: `getAll` sends the token, and `useMyWines`'s fetch effect is gated on
 | `App.tsx` | Top-level layout: nav bar, `<Routes>` table, wires all contexts together | — |
 | `pages/Home.tsx` | Landing page; renders a MapLibre GL globe | — |
 | `pages/LoginForm.tsx` | Username/password form, calls `useAuthContext().login` | — |
-| `pages/WineList.tsx` | Debounced, backend-filtered search (own `useQuery`, §11) + MUI table over the full wine catalogue (`/wines`) | `wineList`, `isLoading` |
-| `pages/MyWines.tsx` | Search + list over the signed-in user's saved wines (`/mywines`) | — |
+| `pages/WineList.tsx` | Submit-triggered catalogue search (`useWineSearch`, §11) via `SearchList` + paginated MUI table (`useWineList`, pages 1-5) over the wine catalogue (`/wines`) | `wineList`, `isLoading`, `page` |
+| `pages/MyWines.tsx` | Live in-memory search (`useMyWineSearch`) via `SearchList` + list over the signed-in user's saved wines (`/mywines`) | — |
 | `pages/MyWineForm.tsx` | Form to add a wine to "my wines" (`/addwine`) | `addWine` |
 | `components/MyWine.tsx` | Single saved-wine detail row + delete button (route target for `/mywines/:id`) | `wine`, `id` |
 | `components/WineCard.tsx` | Compact table row for one catalogue wine, links to its detail page | `wine` |
-| `components/WineDetail.tsx` | Full single-wine detail view (route target for `/wines/:id`) — shows type, subtype, color, residual sugar, producer, region | `wine` |
+| `components/WineDetail.tsx` | Full single-wine detail view (route target for `/wines/:id`) — fetches its own data by id via `GET /api/wines/:id`, shows type, subtype, color, residual sugar, producer, region | — (reads `id` from the route) |
 | `components/PrivateRoute.tsx` | Route guard — redirects unauthenticated users | `user`, `redirectPath` |
+| `components/common/SearchList.tsx` | Generic search box + results list + empty state; shared between `WineList` and `MyWines`. Live-filter by default, or submit-only (`<form>`, Enter/button) when an `onSubmit` prop is passed | `searchTerm`, `results`, `itemKey`/`itemHref`/`itemLabel`, `onSubmit?` |
 | `components/common/Notification.tsx` | Renders the current toast from `NotificationContext` as an MUI `Alert` | `notification` |
 | `components/common/Togglable.tsx` | Generic show/hide wrapper (button ↔ children) | `buttonLabel`, `children` |
 | `components/WineVisualization.tsx` | Decorative animated SVG wine glass — currently unused, not wired into any page | — |

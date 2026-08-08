@@ -16,14 +16,7 @@ import MyWines from './pages/MyWines';
 import MyWineForm from './pages/MyWineForm';
 
 
-// curl http://localhost:3001/api/users
-// TODO aDD to favourotes list (wine) after search... changing importannce  2
-// TODO revent the user from being able to add same wine multiple
-//window.localStorage.removeItem('loggedNoteappUser')copy
-// kokonaan nollaavaa komentoa:window.localStorage.clear()
-
 const App = () => {
-
   return (
     //sx is MUI's styling prop a shortcut for inline styles
     <div>
