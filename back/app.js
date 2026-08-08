@@ -52,13 +52,6 @@ app.use(rateLimiter);
 
 if (process.env.NODE_ENV === 'production') {
   app.use(express.static(path.join(__dirname, 'dist')));
-  // app.use(express.static(path.join(__dirname, '../front/dist')))
-  app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
-    console.log('Serving index.html from backend:', path.join(__dirname, 'dist', 'index.html'));
-    //app.get('/*splat', (req, res) => {
-    // res.sendFile(path.join(__dirname, '../front/dist/index.html'))
-  });
 }
 
 app.use('/api/mywines', mywinesRouter);
@@ -69,6 +62,12 @@ app.use('/api/wines', winesRouter);
 app.get('/health', (req, res) => {
   res.send('ok');
 });
+
+if (process.env.NODE_ENV === 'production') {
+  app.get('/*splat', (req, res) => {
+    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+  });
+}
 
 app.use(unknownEndpoint);
 app.use(errorHandler);

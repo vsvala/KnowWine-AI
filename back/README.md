@@ -35,8 +35,8 @@ flowchart TB
     end
 
     subgraph Services["services/"]
-        MyWinesSvc["myWinesService\n(implemented)"]
-        WinesSvc["winesService\n(implemented)"]
+        MyWinesSvc["myWineService\n(implemented)"]
+        WinesSvc["wineService\n(implemented)"]
         LoginSvc["loginService\n(empty — logic still in controller)"]
         UserSvc["userService\n(empty — logic still in controller)"]
     end
@@ -118,8 +118,8 @@ flowchart TB
     subgraph Services["services/ — business logic (fully migrated)"]
         LoginSvc["loginService"]
         UserSvc["userService"]
-        MyWinesSvc["myWinesService"]
-        WinesSvc["winesService"]
+        MyWinesSvc["myWineService"]
+        WinesSvc["wineService"]
     end
 
     subgraph Models["models/ — SQL access"]
@@ -260,7 +260,7 @@ often say "model" for the same thing).
 
 **Current state:** the **wines** and **mywines** domains follow the
 service-layer split fully — their `controllers/` routers delegate to
-`services/winesService.js` and `services/myWinesService.js`. Shared JWT
+`services/wineService.js` and `services/myWineService.js`. Shared JWT
 verification has also been extracted out of the controllers entirely into
 `utils/authenticate.js`, a route-level middleware reused by both `mywines`
 and `users`. The **login** and **users** domains still have their remaining
@@ -319,7 +319,46 @@ the JWT with `jwt.verify` and re-fetch the user from the database on every
 request — the token carries only `{ username, id }`, it is not trusted for
 authorization decisions beyond identifying the user.
 
-### 5.2 Wine catalogue (`GET /api/wines`)
+### 5.2 Wine catalogue — browsing (`GET /api/wines`)
+
+GrapeMinds' real catalogue has ~264,700 wines across ~2,650 pages of 100; the app deliberately
+never tries to mirror it — see §5.2's quota note and [ADR-002](#adr-002-bound-catalogue-browsing-to-5-pages-instead-of-full-pagination).
+
+```mermaid
+sequenceDiagram
+    participant FE as Frontend
+    participant WR as winesRouter
+    participant WS as wineService
+    participant RD as Redis
+    participant GM as GrapeMinds API
+
+    FE->>WR: GET /api/wines?page=2
+    WR->>WS: getAllWines(undefined, page)
+    alt NODE_ENV !== production
+        WS-->>WR: local wines.json (dev/test fixture, ignores page)
+    else production
+        WS->>WS: clamp page to 1-5
+        WS->>RD: GET grapeminds:wines:page:<n>
+        alt cache hit
+            RD-->>WS: cached JSON string
+        else cache miss
+            WS->>RD: INCR grapeminds:quota:<month> (throws if > 250)
+            WS->>GM: GET /wines?per_page=100&page=<n>
+            GM-->>WS: wine data (paid API call)
+            WS->>RD: SET grapeminds:wines:page:<n> (TTL 60 days)
+        end
+        WS-->>WR: wine array (100 wines)
+    end
+    WR-->>FE: 200 [...]
+```
+
+`page` is clamped server-side to **1–5** even if a client requests higher — browsing is bounded
+deliberately, since paging through all ~2,650 real pages would exhaust the entire 250/month quota
+on browsing alone (see §8 for the resolved issue this replaced). Each page is cached under its
+own key so pages don't overwrite each other, and a near-simultaneous duplicate request for the
+same uncached page shares one in-flight GrapeMinds call instead of firing two.
+
+### 5.2b Wine catalogue — search (`GET /api/wines?search=`)
 
 ```mermaid
 sequenceDiagram
@@ -332,30 +371,39 @@ sequenceDiagram
     FE->>WR: GET /api/wines?search=riesling
     WR->>WS: getAllWines(search)
     alt NODE_ENV !== production
-        WS-->>WR: local wines.json (dev/test fixture)
+        WS-->>WR: wines.json filtered by display_name/type/sub_type
     else production
-        WS->>RD: GET grapeminds:wines
-        alt cache hit
-            RD-->>WS: cached JSON string
-        else cache miss
-            WS->>GM: GET /wines?per_page=100&page=1
-            GM-->>WS: wine data (paid API call)
-            WS->>RD: SET grapeminds:wines (TTL 60 days)
+        alt search shorter than 3 chars
+            WS-->>WR: []
+        else
+            WS->>RD: GET grapeminds:search:<term>
+            alt cache hit
+                RD-->>WS: cached JSON string
+            else cache miss
+                WS->>RD: INCR grapeminds:quota:<month> (throws if > 250)
+                WS->>GM: GET /wines/search?q=<term>&limit=100
+                GM-->>WS: matching wines (paid API call)
+                WS->>RD: SET grapeminds:search:<term> (TTL 60 days)
+            end
+            WS-->>WR: wine array
         end
-        WS-->>WR: wine array
-    end
-    opt search is set
-        WS->>WS: filter array by display_name/type (case-insensitive)
     end
     WR-->>FE: 200 [...]
 ```
 
-The 60-day TTL and dev/test fixture fallback exist specifically to avoid
-metered calls to GrapeMinds — the app has no license to store this catalogue
-permanently, so Redis is used purely as an expiring cache, never as a
-system of record. The `search` filter runs **after** the cache lookup, over
-whatever array was already in memory — it does not add a second Redis or
-GrapeMinds call, so search is effectively free once the cache is warm.
+Unlike the old design, **search proxies to GrapeMinds' own `/wines/search` endpoint** rather than
+filtering whatever catalogue page happens to be cached — this is what actually reaches the full
+264k-wine catalogue instead of only the ≤500 wines ever cached for browsing. Search is cached
+separately from the browsing pages (`grapeminds:search:<term>`, distinct Redis keys) since the two
+serve different purposes and shouldn't invalidate each other.
+
+### 5.2c Wine detail (`GET /api/wines/:id`)
+
+Proxies to GrapeMinds' `GET /wines/:id`, cached per id (`grapeminds:wine:<id>`, 60-day TTL). 404s
+are cached too (as `null`) so a bad or stale id doesn't cost quota on every repeat request — a
+broken link or a bot hitting the same missing id repeatedly is otherwise indistinguishable from a
+legitimate cache-miss traffic pattern. `getWineById` falls back to a local `wines.json` lookup in
+dev/test, same as the other two paths.
 
 ### 5.3 My Wines (`/api/mywines`)
 
@@ -405,19 +453,21 @@ Ordered by severity — this is the section to work through next.
 1. **Service layer is still partially migrated.** `services/loginService.js`
    and `userService.js` exist but are empty files — `controllers/login.js`
    and `users.js` still contain their business logic (JWT signing, bcrypt,
-   validation) inline. `myWinesService.js` and `winesService.js` now follow
+   validation) inline. `myWineService.js` and `wineService.js` now follow
    the intended controller → service → model split. Until login/users are
    finished, those two domains are harder to unit test and the layering is
    inconsistent across the codebase.
 
-2. **External catalogue pagination is hardcoded to page 1.**
-   `wineService.js` always requests `?per_page=100&page=1` — if GrapeMinds
-   has more than 100 wines, the rest are permanently unreachable, cached or
-   not. A search endpoint now exists (`GET /api/wines?search=`,
-   `winesService.getAllWines(search)`, see §5.2), but it only filters the
-   already-cached page-1 array in memory — it does not query GrapeMinds'
-   own search/filter API (unverified whether one exists) and cannot surface
-   wines beyond the first 100 until this pagination limit is resolved.
+### Resolved
+
+2. ~~**External catalogue pagination is hardcoded to page 1.**~~ **Resolved.**
+   Browsing now covers pages 1–5 (clamped server-side, see §5.2) instead of
+   only page 1, and search (§5.2b) proxies to GrapeMinds' own
+   `/wines/search` endpoint instead of filtering the cached browsing pages
+   — it reaches the full catalogue, not just whatever's cached for
+   browsing. Full, unbounded pagination through GrapeMinds' ~2,650 real
+   pages remains an explicit non-goal — see
+   [ADR-002](#adr-002-bound-catalogue-browsing-to-5-pages-instead-of-full-pagination).
 
 ### Medium
 
@@ -447,24 +497,24 @@ Ordered by severity — this is the section to work through next.
 
 1. Finish the service-layer extraction for login/users/mywines, following
    the same pattern already established in `wineService.js`.
-2. A basic search endpoint now exists (`GET /api/wines?search=`, §5.2), but
-   it only covers the first 100 GrapeMinds wines already in cache. Decide
-   the real pagination strategy for the external catalogue — full fetch
-   loop vs. GrapeMinds' own paginated/search API (needs verification) —
-   before the frontend search is trusted to cover the whole catalogue.
-3. Adopt Drizzle ORM + `drizzle-kit` (see [ADR-001](#adr-001-adopt-drizzle-orm-for-schema-migrations-and-query-building))
+2. Adopt Drizzle ORM + `drizzle-kit` (see [ADR-001](#adr-001-adopt-drizzle-orm-for-schema-migrations-and-query-building))
    before the schema changes again; folding new `ALTER TABLE` statements
    into `initDb()` indefinitely does not scale.
-4. Finish the `express-validator` migration: convert `controllers/login.js`
+3. Finish the `express-validator` migration: convert `controllers/login.js`
    to a `body()` validation chain (matching `users.js`/`mywines.js`), and
    replace the repeated manual `Number(req.params.id)` / `Number.isNaN`
    checks with a shared `param('id').isInt()` validator reused across both
    controllers.
-5. Split `routes/` out of `controllers/` per the target architecture in
+4. Split `routes/` out of `controllers/` per the target architecture in
    §2.1 — each domain's `Router` wiring moves to `routes/<domain>.js`,
    leaving `controllers/<domain>Controller.js` as plain handler functions.
    Best done together with step 1 so login/users land directly in the
    four-layer shape instead of being migrated twice.
+5. If usage ever grows enough that 5 cached browsing pages + on-demand
+   search feels limiting, revisit [ADR-002](#adr-002-bound-catalogue-browsing-to-5-pages-instead-of-full-pagination)
+   — e.g. a slow background job that persists a handful of new pages per
+   day, well under the 250/month quota, rather than raising the bound
+   naively.
 
 ## 10. Architecture Decision Records (ADRs)
 
@@ -532,3 +582,43 @@ hand-rolled SQL in `models/` incrementally (one table at a time —
 - **`node-pg-migrate`** — migrations only, no query builder; would have
   closed §8.3 alone but left the hand-rolled SQL in `models/` untouched.
   Rejected because it solves only half the problem this ADR addresses.
+
+### ADR-002: Bound catalogue browsing to 5 pages instead of full pagination
+
+**Status:** Implemented
+
+**Context:** GrapeMinds' real catalogue has ~264,700 wines across ~2,650 pages of 100 at
+`GET /wines?per_page=100&page=N`. The app's plan caps usage at **250 requests/month**. Browsing
+was originally hardcoded to `page=1` only (§8, resolved) — the naive fix would be to loop through
+every page and persist the whole catalogue, but that alone costs ~2,650 requests, more than 10x
+the entire monthly budget, in a single run.
+
+**Decision:** Clamp browsing server-side to pages **1–5** (`MAX_BROWSABLE_PAGES` in
+`wineService.js`), each cached under its own Redis key with a 60-day TTL. This bounds worst-case
+first-time cost to 5 requests total (then free until the cache expires), and bounds it
+*predictably* — unlike search, where a user can type arbitrarily many distinct terms, "browsing"
+has a hard, known ceiling of 5 page-loads regardless of how many users click through it.
+
+**Why not full pagination:** Sequential pages share no cache-reuse advantage the way popular
+search terms do — every new page is a guaranteed cache miss the first time, and a single user
+clicking "next" through the catalogue could exhaust the entire month's quota alone (see the
+frontend's pagination UI, capped at 5 pages in lockstep with this server-side bound). Search
+(§5.2b) is the quota-efficient path to the rest of the catalogue — it proxies to GrapeMinds' own
+`/wines/search`, so a user reaches exactly the wines they're looking for at a cost of one request
+per distinct search term, not one per page of everything.
+
+**Consequences:**
+
+- Only 500 of ~264,700 wines are ever browsable via the paginated table; the rest are reachable
+  only through search. This is a deliberate product tradeoff, not an oversight.
+- If traffic ever justifies more browsable depth, the fix is a slow, budget-aware background
+  expansion (e.g. 1-2 new pages/day) rather than raising `MAX_BROWSABLE_PAGES` outright — see
+  [§9 Recommended Next Steps](#9-recommended-next-steps).
+
+**Alternatives considered:**
+
+- **Full pagination (all ~2,650 pages)** — rejected outright; costs more than 10x the monthly
+  quota to populate once, before counting search or wine-detail traffic.
+- **Persisting the catalogue to PostgreSQL instead of Redis-only** — would remove the "TTL expiry
+  forces a repeat paid call" risk, and is worth revisiting if catalogue depth becomes a real
+  product requirement, but wasn't necessary to fix the immediate page-1-only bug.

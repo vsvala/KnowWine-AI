@@ -257,43 +257,75 @@ about before extending the app:
 - `App.tsx` has TODOs for preventing duplicate wines and for a "favourites" flow.
 - `pages/MyWines.tsx` has commented-out filters for wine type/region/grape that aren't wired up
   yet.
-- Wine search (§11) only searches the backend's already-cached ≤100-wine catalogue — it doesn't
-  reach wines beyond GrapeMinds' hardcoded page 1 (see `back/README.md` §8 Known Issues #2).
+- Catalogue browsing (`useWineList`, §11) is capped at 5 pages (500 of GrapeMinds' ~264,700
+  wines) — a deliberate bound given GrapeMinds' 250-request/month quota, not a bug. Search (§11)
+  reaches the full catalogue instead; see `back/README.md` §5.2/§5.2b and ADR-002.
 
-## 11. Sequence: wine catalogue search
+## 11. Sequence: wine catalogue browsing & search
 
-Unlike the full catalogue (`useWineList`, shared via `WineListContext`), search results are
-fetched by a second, independent `useQuery` local to `pages/WineList.tsx` — the shared
-`wineList` (used by the table on the same page, and by `App.tsx` for `/wines/:id` lookups) is
-never filtered client-side or replaced by the search query.
+The catalogue table and the search box are two independent data sources on the same page
+(`pages/WineList.tsx`) — browsing comes from the shared `useWineList()` (via `WineListContext`),
+search from a page-local `useWineSearch()`. Neither one filters or replaces the other's data.
+
+### 11.1 Browsing (paginated)
 
 ```mermaid
 sequenceDiagram
     participant U as User
     participant WL as WineList.tsx
+    participant Hook as useWineList()
     participant RQ as TanStack Query
     participant Svc as services/wineList.ts
     participant API as Backend GET /api/wines
 
-    U->>WL: types into search input
-    WL->>WL: setSearched(value)
-    WL->>WL: 300ms debounce → setDebouncedSearch(value)
-    alt debouncedSearch.trim().length >= 2
-        WL->>RQ: useQuery({ queryKey: ['wines','search',debouncedSearch], enabled: true })
-        RQ->>Svc: searchAll(debouncedSearch)  [cache miss for this term]
-        Svc->>API: GET /api/wines?search=<term>
-        API-->>Svc: filtered wine array (filtered server-side, see back/README.md §5.2)
-        Svc-->>RQ: wine array
-        RQ-->>WL: data → filteredWines
-    else fewer than 2 characters
-        WL->>RQ: useQuery({ ..., enabled: false })
-        Note over RQ: query does not fire; filteredWines stays []
-    end
-    WL->>U: renders "Search Results" list from filteredWines
+    U->>WL: clicks a page number (MUI Pagination, capped at 5)
+    WL->>Hook: setPage(n)
+    Hook->>RQ: useQuery({ queryKey: ['wines', page] })
+    RQ->>Svc: getAll(page)
+    Svc->>API: GET /api/wines?page=<n>
+    API-->>Svc: one page of wines (see back/README.md §5.2)
+    Svc-->>RQ: wine array
+    RQ-->>WL: data → wineList
+    WL->>U: renders the MUI table for that page
 ```
 
-Because `debouncedSearch` is part of the `queryKey`, TanStack Query treats each distinct search
-term as its own cache entry — re-searching a term already seen in this session returns instantly
-from cache instead of re-hitting the backend. `enabled` (not a client-side early return) is what
-suppresses the request for 0–1 character input, so no network call happens until the 2-character
-threshold is met.
+### 11.2 Search (submit-triggered, not live-as-you-type)
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant SL as SearchList.tsx
+    participant Hook as useWineSearch()
+    participant RQ as TanStack Query
+    participant Svc as services/wineList.ts
+    participant API as Backend GET /api/wines?search=
+
+    U->>SL: types into search input
+    SL->>Hook: setSearchTerm(value)
+    Note over SL: input value updates live; no query fires yet
+    U->>SL: presses Enter / clicks Search (form submit)
+    SL->>Hook: submitSearch()
+    Hook->>Hook: setSubmittedSearch(searchTerm.trim())
+    alt submittedSearch.length >= 3
+        Hook->>RQ: useQuery({ queryKey: ['wines','search',submittedSearch], enabled: true })
+        RQ->>Svc: searchAll(submittedSearch)  [cache miss for this term]
+        Svc->>API: GET /api/wines?search=<term>
+        API-->>Svc: wines from GrapeMinds' own /wines/search (see back/README.md §5.2b)
+        Svc-->>RQ: wine array
+        RQ-->>Hook: data → searchResults
+    else fewer than 3 characters
+        Hook->>RQ: useQuery({ ..., enabled: false })
+        Note over RQ: query does not fire; searchResults stays []
+    end
+    Hook-->>SL: searchResults, hasSearched
+    SL->>U: renders "Search Results" list (or the empty-state message if hasSearched && no results)
+```
+
+Search fires on **explicit submit**, not on every keystroke — the backend proxies to GrapeMinds'
+metered `/wines/search` API (250 requests/month total), so live-as-you-type would fire a separate
+billed query per debounce pause instead of one per actual search intent. Because
+`submittedSearch` is part of the `queryKey`, TanStack Query still treats each distinct submitted
+term as its own cache entry — resubmitting a term already searched this session returns instantly
+from cache. `MyWines.tsx` uses the same `SearchList` component but its own `useMyWineSearch` hook,
+which has no submit step at all — it filters the user's own (already-loaded, free) wine list live
+on every keystroke, since there's no external API cost to debounce or gate.

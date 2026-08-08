@@ -56,7 +56,7 @@ follows the same pattern:
 |---|---|---|
 | `AuthContext` | `useAuth` | Logged-in `user`, `login`/`logout`, persists the session to `localStorage` |
 | `NotificationContext` | `useNotifications` | The current toast message shown by `<Notification>` |
-| `WineListContext` | `useWineList` | The full wine catalogue fetched from `/api/wines` |
+| `WineListContext` | `useWineList` | The wine catalogue, paginated (`page` state, 1–5) via `/api/wines` |
 | `MyWinesContext` | `useMyWines` | The signed-in user's saved wines, plus `addWine`/`deleteWine` |
 
 All four providers are mounted once in `main.tsx`, wrapping `<App />`. Nesting order matters:
