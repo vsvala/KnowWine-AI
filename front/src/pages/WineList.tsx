@@ -60,6 +60,7 @@ const WineList = () => {
           count={MAX_BROWSABLE_PAGES}
           page={page}
           onChange={(_, value) => setPage(value)}
+          color="secondary"
           sx={{ mt: 2 }}
         />
       </div>
