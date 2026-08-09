@@ -1,11 +1,11 @@
 const myWinesModel = require('../models/myWines');
 
 const getAllMyWines = async (userId) => {
-  return myWinesModel.getAll(userId);
+  return await myWinesModel.getAll(userId);
 };
 
 const getMyWineById = async (id) => {
-  return myWinesModel.getById(id);
+  return await myWinesModel.getById(id);
 };
 
 const createMyWine = async ({ name, description, userId }) => {

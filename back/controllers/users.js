@@ -1,5 +1,5 @@
 const usersRouter = require('express').Router();
-const userModel = require('../models/user');
+const userService = require('../services/userService');
 const bcrypt = require('bcrypt');
 const authenticate = require('../utils/authenticate');
 const { body } = require('express-validator');
@@ -29,7 +29,7 @@ const createUserValidation = [
 
 usersRouter.get('/', async (req, res, next) => {
   try {
-    const result = await userModel.getAll();
+    const result = await userService.getAllUsers();
     res.json(result);
   } catch (error) {
     next(error);
@@ -42,7 +42,7 @@ usersRouter.get('/:id', async (req, res, next) => {
     if (Number.isNaN(id)) {
       return res.status(400).json({ error: 'Invalid ID' });
     }
-    const result = await userModel.getById(id);
+    const result = await userService.getUserById(id);
     if (!result) {
       return res.status(404).json({ error: 'User not found' });
     }
@@ -59,7 +59,7 @@ usersRouter.post('/', createUserValidation, handleValidationErrors, async (req, 
     const saltRounds = 10;
     const passwordHash = await bcrypt.hash(password, saltRounds);
 
-    const savedUser = await userModel.create(name, username, passwordHash);
+    const savedUser = await userService.createUser(name, username, passwordHash);
     res.status(201).json(savedUser);
   } catch (error) {
     if (error.code === '23505') {
@@ -78,7 +78,12 @@ usersRouter.delete('/:id', authenticate, async (req, res, next) => {
     if (Number.isNaN(id)) {
       return res.status(400).json({ error: 'Invalid ID' });
     }
-    await userModel.deleteById(id);
+    const user = await userService.getUserById(id);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    await userService.deleteUserById(id);
+
     res.status(204).end();
   } catch (error) {
     next(error);
