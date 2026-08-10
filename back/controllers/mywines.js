@@ -69,6 +69,9 @@ router.post(
       });
       res.status(201).json(newResult);
     } catch (error) {
+      if (error.message === 'DUPLICATE_WINE_NAME') {
+        return res.status(400).json({ error: 'wine name must be unique' });
+      }
       next(error);
     }
   }
@@ -88,7 +91,7 @@ router.delete('/:id', authenticate, async (req, res, next) => {
       return res.status(403).json({ error: 'not authorized' });
     }
     await myWineService.deleteMyWineById(id);
-    res.status(204).end();npm
+    res.status(204).end();
   } catch (error) {
     next(error);
   }

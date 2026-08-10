@@ -9,8 +9,14 @@ const getMyWineById = async (id) => {
 };
 
 const createMyWine = async ({ name, description, userId }) => {
-  const newWine = await myWinesModel.create({ name, description, userId });
-  return newWine;
+  try {
+    return await myWinesModel.create({ name, description, userId });
+  } catch (error) {
+    if (error.code === '23505') {
+      throw new Error('DUPLICATE_WINE_NAME', { cause: error });
+    }
+    throw error;
+  }
 };
 
 const deleteMyWineById = async (id) => {
