@@ -10,10 +10,6 @@ const errorHandler = (error, req, res, _next) => {
     return res.status(400).json({ error: 'Invalid JSON' });
   }
 
-  if (error.code === '23505') {
-    return res.status(400).json({ error: 'name must be unique' });
-  }
-
   if (error.name === 'JsonWebTokenError') {
     return res.status(401).json({ error: 'token invalid' });
   }

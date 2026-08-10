@@ -10,9 +10,6 @@ const getMyWineById = async (id) => {
 
 const createMyWine = async ({ name, description, userId }) => {
   const newWine = await myWinesModel.create({ name, description, userId });
-  if (!newWine) {
-    throw new Error('Failed to create wine');
-  }
   return newWine;
 };
 
