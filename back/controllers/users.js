@@ -1,6 +1,5 @@
 const usersRouter = require('express').Router();
 const userService = require('../services/userService');
-const bcrypt = require('bcrypt');
 const authenticate = require('../utils/authenticate');
 const { body } = require('express-validator');
 const { handleValidationErrors } = require('../utils/validate');
@@ -56,36 +55,32 @@ usersRouter.post('/', createUserValidation, handleValidationErrors, async (req, 
   try {
     const { username, name, password } = req.body;
 
-    const saltRounds = 10;
-    const passwordHash = await bcrypt.hash(password, saltRounds);
-
-    const savedUser = await userService.createUser(name, username, passwordHash);
+    const savedUser = await userService.createUser(name, username, password);
     res.status(201).json(savedUser);
   } catch (error) {
-    if (error.code === '23505') {
+    if (error.message === 'DUPLICATE_USERNAME') {
       return res.status(400).json({ error: 'username must be unique' });
     }
-    if (error.code === '23514') {
+    if (error.message === 'NAME_TOO_SHORT') {
       return res.status(400).json({ error: 'name must be at least 2 characters' });
     }
     next(error);
   }
 });
 
+//TODO check if' logged admin
 usersRouter.delete('/:id', authenticate, async (req, res, next) => {
   const id = Number(req.params.id);
   try {
     if (Number.isNaN(id)) {
       return res.status(400).json({ error: 'Invalid ID' });
     }
-    const user = await userService.getUserById(id);
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
     await userService.deleteUserById(id);
-
     res.status(204).end();
   } catch (error) {
+    if (error.message === 'User not found') {
+      return res.status(404).json({ error: 'User not found' });
+    }
     next(error);
   }
 });

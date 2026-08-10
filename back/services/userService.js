@@ -1,4 +1,5 @@
 const userModel = require('../models/user');
+const bcrypt = require('bcrypt');
 
 const getAllUsers = async () => {
   return await userModel.getAll();
@@ -8,12 +9,20 @@ const getUserById = async (id) => {
   return await userModel.getById(id);
 };
 
-const createUser = async (name, username, passwordHash) => {
-  const newUser = await userModel.create(name, username, passwordHash);
-  if (!newUser) {
-    throw new Error('User not created');
+const createUser = async (name, username, password) => {
+  const SALT_ROUNDS = 10;
+  const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
+  try {
+    return await userModel.create(name, username, passwordHash);
+  } catch (error) {
+    if (error.code === '23505') {
+      throw new Error('DUPLICATE_USERNAME', { cause: error });
+    }
+    if (error.code === '23514') {
+      throw new Error('NAME_TOO_SHORT', { cause: error });
+    }
+    throw error;
   }
-  return newUser;
 };
 
 const deleteUserById = async (id) => {
