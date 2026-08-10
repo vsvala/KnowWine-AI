@@ -50,24 +50,30 @@ Key Features
 └──────────────────────┬──────────────────────────────────┘
                        │ HTTP /api/*
                        ▼
-┌─────────────────────────────────────────────────────────┐
-│                   Express 5 (Node 22)                   │
-│                  http://localhost:3001                   │
-│                                                         │
-│  POST /api/login     → JWT sign                         │
-│  GET  /api/wines     → Redis cache → GrapeMinds API     │
-│  GET  /api/mywines   → PostgreSQL                       │
-│  POST /api/mywines   → JWT verify → PostgreSQL          │
-└───────┬─────────────────────┬───────────────────────────┘
-        │                     │
-        ▼                     ▼
-┌───────────────┐    ┌────────────────┐    ┌─────────────────────┐
-│  PostgreSQL   │    │  Redis         │    │  GrapeMinds API     │
-│  (Neon)       │    │  (Upstash)     │───►│  api.grapeminds.eu  │
-│               │    │                │    │                     │
-│  users        │    │  grapeminds:   │    │  GET /wines         │
-│  my_wines     │    │  wines (60d)   │    │  (wine catalogue)   │
-└───────────────┘    └────────────────┘    └─────────────────────┘
+┌───────────────────────────────────────────────────────────────┐
+│                     Express 5 (Node 22)                       │
+│                    http://localhost:3001                       │
+│                                                                 │
+│  POST /api/login          → JWT sign                           │
+│  GET  /api/wines          → Redis cache → GrapeMinds /wines    │
+│                              (browsable catalogue, page 1-5)   │
+│  GET  /api/wines?search=  → Redis cache → GrapeMinds           │
+│                              /wines/search (full catalogue)    │
+│  GET  /api/wines/:id      → Redis cache → GrapeMinds /wines/:id│
+│  GET  /api/mywines        → PostgreSQL                         │
+│  POST /api/mywines        → JWT verify → PostgreSQL            │
+└───────┬─────────────────────────┬───────────────────────────────┘
+        │                         │
+        ▼                         ▼
+┌───────────────┐    ┌─────────────────────────┐    ┌──────────────────────┐
+│  PostgreSQL   │    │  Redis (Upstash)        │    │  GrapeMinds API      │
+│  (Neon)       │    │                         │───►│  api.grapeminds.eu   │
+│               │    │  grapeminds:wines:      │    │                      │
+│  users        │    │    page:1-5 (60d)       │    │  GET /wines          │
+│  my_wines     │    │  grapeminds:search:*    │    │  GET /wines/search   │
+│               │    │  grapeminds:wine:*      │    │  GET /wines/:id      │
+│               │    │  grapeminds:quota:*     │    │  (250 req/month cap) │
+└───────────────┘    └─────────────────────────┘    └──────────────────────┘
 ```
 
 In **development** the frontend dev server (port 5173) proxies `/api/*` to the backend (port 3001). In **production** the backend serves the built frontend as static files from `back/dist`.
@@ -118,7 +124,7 @@ Login state, the `login`/`logout` actions, and the auto-login-from-`localStorage
 
 Wine catalogue browsing and the user's personal wine list are each handled by their own hook — `useWineList` and `useMyWines` — exposed app-wide via `WineListContext` and `MyWinesContext`. Both hooks call `useNotificationContext()` to surface load/add/delete errors, so `NotificationProvider` must be mounted above them in `main.tsx`.
 
-`useWineList` fetches the catalogue via TanStack Query (`QueryClientProvider` wraps the app in `main.tsx`) instead of a manual `useEffect`/`useState` fetch — this gives it caching, retries, and a long `staleTime` (the catalogue is Redis-cached for 60 days on the backend, so there's no value in refetching on every window focus). The wine search box on `/wines` (`pages/WineList.tsx`) runs its own separate `useQuery`, keyed by the debounced search term, against `GET /api/wines?search=`; see [Wine search](#wine-search) below for the full flow.
+`useWineList` fetches the browsable catalogue via TanStack Query (`QueryClientProvider` wraps the app in `main.tsx`), one page at a time — it tracks the current `page` (1–5) and refetches when it changes. Its `staleTime`/`gcTime` (`hooks/wineQueryConfig.ts`) match the backend's 60-day Redis cache, so there's no value in refetching sooner than the underlying cache can actually change. The wine search box on `/wines` (`pages/WineList.tsx`) fires on **explicit submit** (Enter or a Search button), not live-as-you-type, via its own `useWineSearch` hook against `GET /api/wines?search=`; see [Wine search & catalogue](#wine-search--catalogue) below for the full flow.
 
 ### Environment matrix
 
@@ -154,7 +160,8 @@ KnowWine/
 
 | Method | Path               | Auth required | Description                   |
 | ------ | ------------------ | ------------- | ----------------------------- |
-| GET    | `/api/wines`       | No            | List all wines from catalogue. Optional `?search=` filters by `display_name`/`type` (case-insensitive substring match) |
+| GET    | `/api/wines`       | No            | Browsable catalogue page (100 wines). `?page=` (1–5, clamped server-side) selects which cached page; `?search=` (min 3 characters) instead proxies to GrapeMinds' own search endpoint across the full catalogue |
+| GET    | `/api/wines/:id`   | No            | Single wine's full detail, proxied from GrapeMinds |
 | GET    | `/api/mywines`     | No            | List all user-saved wines     |
 | GET    | `/api/mywines/:id` | No            | Get a single saved wine       |
 | POST   | `/api/mywines`     | Yes (Bearer)  | Add a wine to My Wines        |
@@ -331,58 +338,59 @@ Test files live in `front/tests/e2e/` and cover navigation, home page, and the w
 
 ---
 
-## Wine search
+## Wine search & catalogue
 
-`GET /api/wines` accepts an optional `search` query param that filters the catalogue server-side
-before it's returned — case-insensitive substring match against `display_name` and `type`.
-Filtering happens in `back/services/winesService.js#getAllWines(search)`, **after** the Redis/
-`wines.json` cache lookup, not as a separate query — the full catalogue is already in memory at
-that point (it's small and Redis-cached for 60 days), so filtering is a plain `Array.filter`, not
-a database query.
+GrapeMinds' catalogue has over 264,000 wines, but its plan caps usage at **250 requests/month** —
+so the app only ever holds a small, cached slice locally, and every code path that talks to
+GrapeMinds is designed around that quota. Everything below lives in
+`back/services/wineService.js`.
 
-```
-GET /api/wines?search=riesling
-    │
-    ├── winesRouter reads req.query.search
-    ├── winesService.getAllWines(search)
-    │     ├── loads the full wine array (Redis cache in prod, wines.json in dev/test)
-    │     └── if `search` is set, .filter()s by display_name/type (case-insensitive)
-    └── res.json(filtered array)
-```
+**Browsing** (`GET /api/wines`, no `search` param) returns one page of 100 wines at a time from
+GrapeMinds' `/wines?per_page=100&page=N` endpoint. `page` is clamped server-side to **1–5** —
+bounded deliberately, since paging through all ~2,650 real pages would exhaust the entire monthly
+quota on browsing alone. Each page is cached separately in Redis (`grapeminds:wines:page:<n>`,
+60-day TTL). The frontend's `useWineList` hook tracks the current page; `pages/WineList.tsx`
+renders an MUI `Pagination` control capped at 5.
 
-On the frontend, `pages/WineList.tsx`'s "Search Results" list runs its own TanStack Query call,
-independent from the full-catalogue `useWineList()` used by the table below it:
+**Search** (`GET /api/wines?search=<term>`, minimum 3 characters) proxies directly to GrapeMinds'
+own `/wines/search?q=&limit=100` endpoint, rather than filtering the (much smaller) cached
+browsing pages — this is what actually reaches the full catalogue, not just whatever page happens
+to be cached. Results are cached per normalized search term (`grapeminds:search:<term>`, 60-day
+TTL). On the frontend, `pages/WineList.tsx` fires the search on **explicit submit** (Enter or a
+Search button) via `useWineSearch`, not on every keystroke — typing "riesling" with a pause
+mid-word would otherwise fire two separately-billed queries for one search intent.
 
-```ts
-const { data: filteredWines = [] } = useQuery<Wine[]>({
-  queryKey: ['wines', 'search', debouncedSearch],
-  queryFn: () => wineListService.searchAll(debouncedSearch),
-  enabled: debouncedSearch.trim().length >= 2, // don't fire on 0-1 chars
-});
-```
-
-Because `debouncedSearch` is part of the `queryKey`, TanStack Query automatically refetches when
-the (debounced) search term changes and caches each term separately — searching "riesling", then
-something else, then "riesling" again re-uses the cached result instead of re-fetching. The
-300ms debounce on `searched` (before it becomes `debouncedSearch`) means a request only fires
-once the user pauses typing, not on every keystroke.
-
-**Known limitation:** this only searches the wines already fetched into the backend's cache
-(currently capped at the first 100 from GrapeMinds — see `back/README.md` §8 Known Issues #2). It
-is not a query against GrapeMinds' own catalogue, so wines beyond that first page are unsearchable
-until the pagination issue is addressed.
+**Wine detail** (`GET /api/wines/:id`) proxies to GrapeMinds' `/wines/:id`, cached per id
+(`grapeminds:wine:<id>`, 60-day TTL — including a cached `null` for 404s, so a bad/stale id
+doesn't cost quota on every repeat visit). `components/WineDetail.tsx` fetches by id directly
+rather than looking the wine up in the (page-limited) `WineListContext`, since a search result
+very likely references a wine outside whatever page happens to be cached.
 
 ## Redis caching
 
-In **production**, the `GET /api/wines` endpoint caches the GrapeMinds wine catalogue in Redis to avoid hitting the external API on every request. In **development** and **test** the endpoint returns the local `wines.json` file and Redis is not used.
+| Key pattern | What it caches | TTL |
+|---|---|---|
+| `grapeminds:wines:page:<1-5>` | One page (100 wines) of the browsable catalogue | 60 days |
+| `grapeminds:search:<term>` | Search results for one normalized search term | 60 days |
+| `grapeminds:wine:<id>` | A single wine's full detail (or cached `null` for a 404) | 60 days |
+| `grapeminds:quota:<YYYY-MM>` | Count of real (non-cached) GrapeMinds calls made this month | ~40 days |
 
-1. On the first production request Redis is empty — the backend fetches wines from the GrapeMinds API and stores the result under the key `grapeminds:wines` with a TTL of 60 days.
-2. On subsequent requests the cached JSON is returned directly from Redis, with no external API call.
-3. After 60 days the key expires and the next request refreshes the cache from the API.
+In **development** and **test**, none of this runs — `GET /api/wines*` is served from the local
+`back/wines.json` fixture and Redis isn't used at all.
+
+In **production**, every cache miss:
+1. Increments `grapeminds:quota:<current month>` and checks it against the 250 cap **before**
+   the request goes out — once the quota is spent, the backend throws instead of calling
+   GrapeMinds, rather than silently going over.
+2. Shares one in-flight request with any other near-simultaneous request for the same uncached
+   key (e.g. two users searching the same new term at once), instead of both hitting GrapeMinds.
+3. On success, writes the result to its cache key with a 60-day TTL.
 
 The Redis client (`back/utils/redis.js`) uses the `REDIS_URL` environment variable in production (Upstash), or `REDIS_HOST` / `REDIS_PORT` locally.
 
-**Running Redis locally (production-mode testing only):**
+### Forcing a cache refresh
+
+**Locally** (production-mode testing only):
 
 ```bash
 docker run --name knowwine-redis -p 6379:6379 -d redis:7
@@ -393,10 +401,27 @@ Set `NODE_ENV=production` in `back/.env`, then start the backend normally. To in
 
 ```bash
 docker exec -it knowwine-redis redis-cli
-> GET grapeminds:wines   # returns cached JSON or (nil) if empty
-> TTL grapeminds:wines   # seconds remaining
-> DEL grapeminds:wines   # force a cache refresh on next request
+> KEYS grapeminds:wines*        # list cached catalogue pages
+> DEL grapeminds:wines:page:1   # force that one page to refetch on next request
 ```
+
+**In production (Upstash)** — there's no admin endpoint for this yet, so it's done directly
+against Redis:
+
+- **Console**: log into [console.upstash.com](https://console.upstash.com) → open the database →
+  Data Browser / CLI tab → delete the keys matching `grapeminds:wines*`, `grapeminds:search:*`,
+  or `grapeminds:wine:*` as needed.
+- **CLI**, if `redis-cli` can reach the Upstash instance directly:
+  ```bash
+  redis-cli -u "$REDIS_URL" --scan --pattern "grapeminds:wines*" | xargs -I{} redis-cli -u "$REDIS_URL" DEL {}
+  redis-cli -u "$REDIS_URL" --scan --pattern "grapeminds:search:*" | xargs -I{} redis-cli -u "$REDIS_URL" DEL {}
+  redis-cli -u "$REDIS_URL" --scan --pattern "grapeminds:wine:*" | xargs -I{} redis-cli -u "$REDIS_URL" DEL {}
+  ```
+  (Redis has no wildcard `DEL`, hence `--scan --pattern` + `xargs`.)
+
+**Never delete `grapeminds:quota:*`** unless you specifically intend to reset the monthly usage
+counter — it tracks real API calls already made, not cacheable data, and clearing it early just
+makes the 250/month cap easier to accidentally exceed.
 
 ---
 
@@ -514,7 +539,10 @@ REDIS_URL=<Upstash Redis URL>
 
 ## Done
 
-- [x] Wine catalogue search (`GET /api/wines?search=`, backend-filtered; frontend via TanStack Query)
+- [x] Wine catalogue search proxied to GrapeMinds' own `/wines/search` endpoint (was: in-memory filter over one cached page) — reaches the full catalogue, fires on submit not on every keystroke
+- [x] Bounded catalogue pagination (5 pages, MUI `Pagination`) — was hardcoded to page 1 only
+- [x] Single-wine detail endpoint (`GET /api/wines/:id`) — `WineDetail.tsx` no longer depends on the wine being in the currently-cached catalogue page
+- [x] GrapeMinds monthly quota tracking (250 req/month, Redis counter) + in-flight request dedup + cached 404s
 - [x] Wine catalogue fetching migrated to TanStack Query (caching, retries, tuned `staleTime`)
 - [x] refining github CI/CD pipeline to have version release tags and option to skip deployment and tags
 - [x] Add playright e2e tests to github CI/CD pipeline to run as parallel job
