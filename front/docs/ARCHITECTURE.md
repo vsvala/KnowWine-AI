@@ -28,11 +28,10 @@ custom hooks.
 front/src
 ├── main.tsx                 # entry point — mounts Router + all context Providers
 ├── App.tsx                  # top nav, route table
-├── context/                 # React Context wrappers (one per domain)
+├── context/                 # React Context wrappers (only where state has 2+ consumers)
 │   ├── AuthContext.tsx
 │   ├── MyWinesContext.tsx
-│   ├── NotificationContext.tsx
-│   └── WineListContext.tsx
+│   └── NotificationContext.tsx
 ├── hooks/                    # the actual state + logic behind each context
 │   ├── useAuth.ts
 │   ├── useMyWines.ts
@@ -63,7 +62,7 @@ front/src
     ├── MyWine.tsx                 # still domain-specific, but a "component" like any other
     ├── PrivateRoute.tsx
     ├── WineCard.tsx
-    ├── WineDetail.tsx             # fetches its own wine by id (GET /api/wines/:id) — not read from WineListContext
+    ├── WineDetail.tsx             # fetches its own wine by id (GET /api/wines/:id) — not read from useWineList's cache
     └── WineVisualization.tsx      # currently unused — not imported by any page or route
 ```
 
@@ -75,11 +74,13 @@ size-appropriate choice: at ~30 source files.
 
 ## 3. Composition root — provider tree
 
-`main.tsx` nests every context provider around `<App />`, with `QueryClientProvider` as the
-outermost wrapper — it must sit above every provider whose hook calls `useQuery` (currently just
-`WineListProvider`). Order matters below that too: `AuthProvider` must wrap everything that needs
-`user` (including `MyWinesProvider`, whose `useMyWines` now skips fetching until a user is
-logged in), and `MyWinesProvider` sits inside `WineListProvider` and `NotificationProvider`
+`main.tsx` nests `AuthProvider` and `NotificationProvider` around `<App />`, with
+`QueryClientProvider` as the outermost wrapper — it must sit above every component whose hook
+calls `useQuery` (`useWineList`, and any `useQuery` call inside `App`'s tree). `MyWinesProvider`
+is *not* mounted here: it's mounted lower, in `PrivateRoute.tsx` (see §4), wrapping only the
+routes that actually need it. Order matters: `AuthProvider` must wrap everything that needs
+`user` (including, transitively, `MyWinesProvider` further down, since `useMyWines` now skips
+fetching until a user is logged in), and `MyWinesProvider` sits inside `NotificationProvider`
 because `useMyWines` calls both `useAuthContext()` and `useNotificationContext()` internally.
 
 ```mermaid
@@ -87,20 +88,21 @@ graph TD
     QCP["QueryClientProvider"] --> Router["BrowserRouter"]
     Router --> AuthProvider
     AuthProvider --> NotificationProvider
-    NotificationProvider --> WineListProvider
-    WineListProvider --> MyWinesProvider
-    MyWinesProvider --> App["App.tsx (nav + routes)"]
+    NotificationProvider --> App["App.tsx (nav + routes)"]
+    App --> PrivateRoute["PrivateRoute\n(wraps only /addwine, /mywines, /mywines/:id)"]
+    PrivateRoute --> MyWinesProvider
 
     AuthProvider -.wraps.-> useAuth["useAuth()"]
     NotificationProvider -.wraps.-> useNotifications["useNotifications()"]
-    WineListProvider -.wraps.-> useWineList["useWineList()\n(useQuery, paginated 1-5, staleTime 60d)"]
     MyWinesProvider -.wraps.-> useMyWines["useMyWines()\n(useEffect, gated on user)"]
 ```
 
 Each `*Context.tsx` follows the same pattern: it has no state of its own, it just runs the
 matching hook once and exposes the result via `createContext` + a `useXContext()` accessor that
 throws if called outside its provider. This keeps the context's type inferred from the hook, so
-they can't drift apart.
+they can't drift apart. `useWineList` deliberately doesn't get this treatment — `pages/WineList.tsx`
+is its only consumer, so it's called directly there (see §11) rather than wrapped in a provider
+that would otherwise fetch on every app load regardless of whether the user ever visits `/wines`.
 
 ## 4. Route map
 
@@ -148,7 +150,7 @@ backend can run on separate ports without CORS configuration.
 `useState`/`useEffect`. `useWineList` is the one exception — it fetches through TanStack Query's
 `useQuery` instead, which is why it's the only hook not calling `useState` for its data. See
 §11 for the wine-search flow, which uses a second, independent `useQuery` call scoped to the
-search page rather than the shared `WineListContext`.
+search page rather than the paginated catalogue held by `useWineList`.
 
 ## 6. Sequence: login
 
@@ -264,8 +266,9 @@ about before extending the app:
 ## 11. Sequence: wine catalogue browsing & search
 
 The catalogue table and the search box are two independent data sources on the same page
-(`pages/WineList.tsx`) — browsing comes from the shared `useWineList()` (via `WineListContext`),
-search from a page-local `useWineSearch()`. Neither one filters or replaces the other's data.
+(`pages/WineList.tsx`) — browsing comes from `useWineList()`, called directly since this page is
+its only consumer, and search comes from a page-local `useWineSearch()`. Neither one filters or
+replaces the other's data.
 
 ### 11.1 Browsing (paginated)
 

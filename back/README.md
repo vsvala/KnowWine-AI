@@ -37,8 +37,8 @@ flowchart TB
     subgraph Services["services/"]
         MyWinesSvc["myWineService\n(implemented)"]
         WinesSvc["wineService\n(implemented)"]
-        LoginSvc["loginService\n(empty — logic still in controller)"]
-        UserSvc["userService\n(empty — logic still in controller)"]
+        LoginSvc["loginService\n(implemented)"]
+        UserSvc["userService\n(implemented)"]
     end
 
     subgraph Models["models/ (data access)"]
@@ -57,8 +57,8 @@ flowchart TB
     RMyWines -.gated by.-> Auth
     Auth --> UserModel
 
-    RLogin --> UserModel
-    RUsers --> UserModel
+    RLogin --> LoginSvc --> UserModel
+    RUsers --> UserSvc --> UserModel
     RMyWines --> MyWinesSvc
     MyWinesSvc --> MyWinesModel
     RWines --> WinesSvc
@@ -72,15 +72,10 @@ flowchart TB
     RUsers -. on error .-> ErrH
     RMyWines -. on error .-> ErrH
     RWines -. on error .-> ErrH
-
-    style LoginSvc stroke-dasharray: 5 5
-    style UserSvc stroke-dasharray: 5 5
 ```
 
 Dashed `-.gated by.->` arrows mark routes that run the shared `authenticate`
-middleware (`utils/authenticate.js`) before their handler; dashed boxes mark
-services that exist as files but currently contain no code — see
-[§8 Known Issues](#8-known-issues--technical-debt).
+middleware (`utils/authenticate.js`) before their handler.
 
 ### 2.1 Target Architecture (Post-Refactor)
 
@@ -88,8 +83,10 @@ services that exist as files but currently contain no code — see
 wiring), not controller logic in the conventional sense — the two concerns
 are merged into one file per domain. The target state separates them into a
 dedicated `routes/` layer plus a `controllers/` layer of plain handler
-functions, and finishes the `login`/`users` service-layer migration called
-out in §8 so every domain follows the same four-layer shape:
+functions. The service-layer split itself (routes/controllers → services →
+models) is already complete for all four domains — see §3 — so this reshuffle
+is purely about extracting routing out of `controllers/`, not about moving
+business logic anywhere new:
 
 ```mermaid
 flowchart TB
@@ -258,16 +255,16 @@ often say "model" for the same thing).
 | **Models** (`models/`) | Raw SQL access via `pg` | SQL only |
 | **Utils** (`utils/`) | Cross-cutting: DB pool, Redis client, config, Express middleware | Infra |
 
-**Current state:** the **wines** and **mywines** domains follow the
-service-layer split fully — their `controllers/` routers delegate to
-`services/wineService.js` and `services/myWineService.js`. Shared JWT
-verification has also been extracted out of the controllers entirely into
-`utils/authenticate.js`, a route-level middleware reused by both `mywines`
-and `users`. The **login** and **users** domains still have their remaining
-business logic (bcrypt hashing/comparison, user-creation validation)
-written directly in the router file, since `loginService.js` and
-`userService.js` are still empty. None of the four domains yet separate
-routing from handler logic into `routes/` — see §2.1 for the target shape.
+**Current state:** all four domains — **wines**, **mywines**, **login**, and
+**users** — follow the service-layer split fully: their `controllers/`
+routers delegate business logic (bcrypt hashing/comparison, JWT signing,
+user-creation validation, caching strategy, GrapeMinds calls) to
+`services/wineService.js`, `services/myWineService.js`,
+`services/loginService.js`, and `services/userService.js` respectively.
+Shared JWT verification has also been extracted out of the controllers
+entirely into `utils/authenticate.js`, a route-level middleware reused by
+both `mywines` and `users`. None of the four domains yet separate routing
+from handler logic into `routes/` — see §2.1 for the target shape.
 
 ## 4. Request Lifecycle
 
@@ -294,6 +291,7 @@ sequenceDiagram
     participant FE as Frontend
     participant MW as rateLimiter + loginRateLimiter
     participant LC as loginRouter
+    participant LS as loginService
     participant UM as user model
     participant DB as PostgreSQL
 
@@ -301,15 +299,18 @@ sequenceDiagram
     MW->>MW: check per-IP attempt count
     MW->>LC: next()
     LC->>LC: validate input is non-empty string, length-bounded
-    LC->>UM: getByUsername(username)
+    LC->>LS: loginUser(username, password)
+    LS->>UM: getByUsername(username)
     UM->>DB: SELECT ... WHERE username = $1
     DB-->>UM: user row (or none)
-    UM-->>LC: user
-    LC->>LC: bcrypt.compare(password, password_hash)
+    UM-->>LS: user
+    LS->>LS: bcrypt.compare(password, password_hash)
     alt credentials valid
-        LC->>LC: jwt.sign({username, id}, SECRET, 1h expiry)
+        LS->>LS: jwt.sign({username, id}, SECRET, 1h expiry)
+        LS-->>LC: {token, username, name}
         LC-->>FE: 200 {token, username, name}
     else invalid
+        LS-->>LC: throws Error('invalid username or password')
         LC-->>FE: 401 {error}
     end
 ```
@@ -446,19 +447,17 @@ All routes funnel unexpected errors to `next(error)`, handled centrally by
 
 ## 8. Known Issues & Technical Debt
 
-Ordered by severity — this is the section to work through next.
-
-### High
-
-1. **Service layer is still partially migrated.** `services/loginService.js`
-   and `userService.js` exist but are empty files — `controllers/login.js`
-   and `users.js` still contain their business logic (JWT signing, bcrypt,
-   validation) inline. `myWineService.js` and `wineService.js` now follow
-   the intended controller → service → model split. Until login/users are
-   finished, those two domains are harder to unit test and the layering is
-   inconsistent across the codebase.
+Ordered by severity — this is the section to work through next. No High-severity
+issues are currently outstanding.
 
 ### Resolved
+
+1. ~~**Service layer was partially migrated.**~~ **Resolved.**
+   `services/loginService.js` and `userService.js` are now fully implemented
+   — `controllers/login.js` and `users.js` delegate to them instead of
+   containing JWT signing, bcrypt, and validation logic inline. All four
+   domains (`wines`, `mywines`, `login`, `users`) now follow the same
+   controller → service → model split.
 
 2. ~~**External catalogue pagination is hardcoded to page 1.**~~ **Resolved.**
    Browsing now covers pages 1–5 (clamped server-side, see §5.2) instead of
@@ -495,22 +494,20 @@ Ordered by severity — this is the section to work through next.
 
 ## 9. Recommended Next Steps
 
-1. Finish the service-layer extraction for login/users/mywines, following
-   the same pattern already established in `wineService.js`.
-2. Adopt Drizzle ORM + `drizzle-kit` (see [ADR-001](#adr-001-adopt-drizzle-orm-for-schema-migrations-and-query-building))
+1. Adopt Drizzle ORM + `drizzle-kit` (see [ADR-001](#adr-001-adopt-drizzle-orm-for-schema-migrations-and-query-building))
    before the schema changes again; folding new `ALTER TABLE` statements
    into `initDb()` indefinitely does not scale.
-3. Finish the `express-validator` migration: convert `controllers/login.js`
+2. Finish the `express-validator` migration: convert `controllers/login.js`
    to a `body()` validation chain (matching `users.js`/`mywines.js`), and
    replace the repeated manual `Number(req.params.id)` / `Number.isNaN`
    checks with a shared `param('id').isInt()` validator reused across both
    controllers.
-4. Split `routes/` out of `controllers/` per the target architecture in
+3. Split `routes/` out of `controllers/` per the target architecture in
    §2.1 — each domain's `Router` wiring moves to `routes/<domain>.js`,
    leaving `controllers/<domain>Controller.js` as plain handler functions.
-   Best done together with step 1 so login/users land directly in the
-   four-layer shape instead of being migrated twice.
-5. If usage ever grows enough that 5 cached browsing pages + on-demand
+   Since the service layer is already fully migrated (§8), this is now a
+   pure routing extraction with no business logic to move alongside it.
+4. If usage ever grows enough that 5 cached browsing pages + on-demand
    search feels limiting, revisit [ADR-002](#adr-002-bound-catalogue-browsing-to-5-pages-instead-of-full-pagination)
    — e.g. a slow background job that persists a handful of new pages per
    day, well under the 250/month quota, rather than raising the bound

@@ -122,7 +122,7 @@ Login state, the `login`/`logout` actions, and the auto-login-from-`localStorage
 
 ### Frontend wine state
 
-Wine catalogue browsing and the user's personal wine list are each handled by their own hook — `useWineList` and `useMyWines` — exposed app-wide via `WineListContext` and `MyWinesContext`. Both hooks call `useNotificationContext()` to surface load/add/delete errors, so `NotificationProvider` must be mounted above them in `main.tsx`.
+Wine catalogue browsing and the user's personal wine list are each handled by their own hook — `useWineList` and `useMyWines`. `useMyWines` is exposed app-wide via `MyWinesContext`; `useWineList` is called directly in `pages/WineList.tsx`, its only consumer, so it doesn't need a context. Both hooks call `useNotificationContext()` to surface load/add/delete errors, so `NotificationProvider` must be mounted above `MyWinesProvider` (and any component calling `useWineList`).
 
 `useWineList` fetches the browsable catalogue via TanStack Query (`QueryClientProvider` wraps the app in `main.tsx`), one page at a time — it tracks the current `page` (1–5) and refetches when it changes. Its `staleTime`/`gcTime` (`hooks/wineQueryConfig.ts`) match the backend's 60-day Redis cache, so there's no value in refetching sooner than the underlying cache can actually change. The wine search box on `/wines` (`pages/WineList.tsx`) fires on **explicit submit** (Enter or a Search button), not live-as-you-type, via its own `useWineSearch` hook against `GET /api/wines?search=`; see [Wine search & catalogue](#wine-search--catalogue) below for the full flow.
 
@@ -151,7 +151,7 @@ KnowWine/
 └── front/                 # React frontend
     └── src/
         ├── components/    # UI components
-        ├── context/       # AuthContext, NotificationContext, MyWinesContext, WineListContext
+        ├── context/       # AuthContext, NotificationContext, MyWinesContext
         ├── hooks/         # useAuth, useNotifications, useMyWines, useWineList
         └── services/      # Axios API calls (login, myWines, users, wineList)
 ```
@@ -363,7 +363,7 @@ mid-word would otherwise fire two separately-billed queries for one search inten
 **Wine detail** (`GET /api/wines/:id`) proxies to GrapeMinds' `/wines/:id`, cached per id
 (`grapeminds:wine:<id>`, 60-day TTL — including a cached `null` for 404s, so a bad/stale id
 doesn't cost quota on every repeat visit). `components/WineDetail.tsx` fetches by id directly
-rather than looking the wine up in the (page-limited) `WineListContext`, since a search result
+rather than looking the wine up in the (page-limited) `useWineList` cache, since a search result
 very likely references a wine outside whatever page happens to be cached.
 
 ## Redis caching
@@ -539,6 +539,7 @@ REDIS_URL=<Upstash Redis URL>
 
 ## Done
 
+- [x] Removed `WineListContext` — it had a single consumer (`WineList.tsx`), so the hook is now called directly instead of through a provider mounted app-wide
 - [x] Wine catalogue search proxied to GrapeMinds' own `/wines/search` endpoint (was: in-memory filter over one cached page) — reaches the full catalogue, fires on submit not on every keystroke
 - [x] Bounded catalogue pagination (5 pages, MUI `Pagination`) — was hardcoded to page 1 only
 - [x] Single-wine detail endpoint (`GET /api/wines/:id`) — `WineDetail.tsx` no longer depends on the wine being in the currently-cached catalogue page
@@ -556,7 +557,7 @@ REDIS_URL=<Upstash Redis URL>
 - [x] Navigation with React Router (BrowserRouter)
 - [x] JWT token authentication and login/logout
 - [x] Auth state moved to Context API (`AuthContext` + `useAuth` hook)
-- [x] My Wines and wine catalogue state moved to Context API (`MyWinesContext`/`WineListContext`)
+- [x] My Wines state moved to Context API (`MyWinesContext`) — wine catalogue state (`useWineList`) was moved to `WineListContext` too but later reverted since it never had more than one consumer
 - [x] Backend integration tests (mywines + users)
 - [x] ESLint and Prettier
 - [x] Project setup: React (TypeScript) frontend + Express backend connected

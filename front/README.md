@@ -42,8 +42,9 @@ npm run dev       # starts the app at http://localhost:5173
 
 ## State management
 
-No Redux/Zustand — global state is plain React Context wrapping custom hooks. Each domain
-follows the same pattern:
+No Redux/Zustand — global state is plain React Context wrapping custom hooks, used only where a
+hook's state is actually needed by more than one component. Each context follows the same
+pattern:
 
 - a **hook** (`hooks/useX.ts`) owns the actual `useState`/`useEffect` logic and calls the
   matching service for API access
@@ -56,14 +57,18 @@ follows the same pattern:
 |---|---|---|
 | `AuthContext` | `useAuth` | Logged-in `user`, `login`/`logout`, persists the session to `localStorage` |
 | `NotificationContext` | `useNotifications` | The current toast message shown by `<Notification>` |
-| `WineListContext` | `useWineList` | The wine catalogue, paginated (`page` state, 1–5) via `/api/wines` |
 | `MyWinesContext` | `useMyWines` | The signed-in user's saved wines, plus `addWine`/`deleteWine` |
 
-All four providers are mounted once in `main.tsx`, wrapping `<App />`. Nesting order matters:
-`AuthProvider` wraps everything that needs `user`, and `MyWinesProvider` sits inside
-`NotificationProvider` because `useMyWines` calls `useNotificationContext()` internally to report
-errors. Local, component-only state (form inputs, search text, toggles) stays as plain
-`useState` in the component — it isn't lifted into context.
+`AuthProvider` and `NotificationProvider` are mounted once in `main.tsx`, wrapping `<App />`.
+`MyWinesProvider` is mounted lower, in `PrivateRoute.tsx`, since only the signed-in routes it
+guards need it; it sits inside `NotificationProvider` because `useMyWines` calls both
+`useAuthContext()` and `useNotificationContext()` internally.
+
+The wine catalogue (`useWineList`) is a deliberate exception to this pattern: it has exactly one
+consumer, `pages/WineList.tsx`, so it's called directly there instead of through a context —
+wrapping it in a provider mounted app-wide would only add an eager fetch on every app load with
+no sharing benefit. Local, component-only state (form inputs, search text, toggles) also stays as
+plain `useState` in the component — it isn't lifted into context.
 
 See [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) for the provider-tree diagram and data-flow
 sequence diagrams.
