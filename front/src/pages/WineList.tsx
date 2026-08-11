@@ -1,24 +1,25 @@
-import WineCard from '../components/WineCard';
-import { useWineListContext } from '../context/WineListContext';
-import { useWineSearch } from '../hooks/useWineSearch';
-import type { WineSearchResult } from '../types/wine';
-import Pagination from '@mui/material/Pagination';
-import SearchList from '../components/common/SearchList';
 import {
+  Paper,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
-  Paper,
 } from '@mui/material';
+import Pagination from '@mui/material/Pagination';
+import SearchList from '../components/common/SearchList';
+import WineCard from '../components/WineCard';
+import { useWineSearch } from '../hooks/useWineSearch';
+import type { WineSearchResult } from '../types/wine';
+import { useWineList } from '../hooks/useWineList';
+
 
 const MAX_BROWSABLE_PAGES = 5;
 
 const WineList = () => {
-  const { wineList, isLoading, page, setPage  } = useWineListContext();
   const { searchTerm, setSearchTerm, searchResults, submitSearch, hasSearched } = useWineSearch();
+  const { wineList, isLoading, page, setPage } = useWineList();
 
   return (
     <div>  
