@@ -37,11 +37,7 @@ export default { getAll, setToken };
 //   if(!response.ok) {
 //     throw new Error('Failed to fetch users');
 //   }
-//   const data = await response.json();
-//   return data;
 //   return await response.json()
-
 // };
 
-// export default { getAll, setToken };
 
