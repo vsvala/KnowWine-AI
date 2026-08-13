@@ -16,9 +16,9 @@ loginRouter.post('/', async (req, res, next) => {
       return res.status(401).json({ error: 'invalid username or password' });
     }
     const result = await loginService.loginUser(username, password);
-    res.status(200).send(result);
+    res.status(200).json(result);
   } catch (error) {
-    if (error.message === 'invalid username or password') {
+    if (error.message === 'INVALID_CREDENTIALS') {
       return res.status(401).json({ error: 'invalid username or password' });
     }
     next(error);

@@ -21,8 +21,10 @@ const createMyWine = async ({ name, description, userId }) => {
 
 const deleteMyWineById = async (id) => {
   const wine = await myWinesModel.getById(id);
+  // Controller already checked existence, but this closes the race window
+  // where the row is deleted between that check and this call.
   if (!wine) {
-    throw new Error('Wine not found');
+    throw new Error('WINE_NOT_FOUND');
   }
   await myWinesModel.deleteById(id);
 };

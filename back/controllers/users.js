@@ -78,7 +78,7 @@ usersRouter.delete('/:id', authenticate, async (req, res, next) => {
     await userService.deleteUserById(id);
     res.status(204).end();
   } catch (error) {
-    if (error.message === 'User not found') {
+    if (error.message === 'USER_NOT_FOUND') {
       return res.status(404).json({ error: 'User not found' });
     }
     next(error);

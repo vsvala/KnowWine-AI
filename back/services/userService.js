@@ -28,7 +28,7 @@ const createUser = async (name, username, password) => {
 const deleteUserById = async (id) => {
   const user = await userModel.getById(id);
   if (!user) {
-    throw new Error('User not found');
+    throw new Error('USER_NOT_FOUND');
   }
   await userModel.deleteById(id);
 };

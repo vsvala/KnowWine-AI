@@ -93,6 +93,9 @@ router.delete('/:id', authenticate, async (req, res, next) => {
     await myWineService.deleteMyWineById(id);
     res.status(204).end();
   } catch (error) {
+    if (error.message === 'WINE_NOT_FOUND') {
+      return res.status(404).json({ error: 'wine not found' });
+    }
     next(error);
   }
 });
