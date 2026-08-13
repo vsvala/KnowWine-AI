@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+# KnowWine AI pre-commit: deterministiset tarkistukset (secrets, lint, tsc,
+# testit, npm audit). Kattaa kaikki committit, tekijästä riippumatta.
+# Ks. docs/ai-commit-quality-gate.md.
+set -uo pipefail
+
+HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib/run-checks.sh
+source "$HOOK_DIR/lib/run-checks.sh"
+
+echo "==> KnowWine AI pre-commit: deterministiset tarkistukset" >&2
+
+if ! run_deterministic_checks "staged"; then
+  echo "" >&2
+  echo "Committi keskeytetty. Korjaa yllä mainitut virheet ja yritä uudelleen." >&2
+  exit 1
+fi
+
+# --- npm audit ---------------------------------------------------------
+if [ "${BACK_CHANGED:-0}" = 1 ] || [ "${FRONT_CHANGED:-0}" = 1 ]; then
+  AUDIT_FINDINGS=""
+
+  if [ "${BACK_CHANGED:-0}" = 1 ]; then
+    log_step "audit" "back: npm audit (--audit-level=high)" "npm audit --audit-level=high"
+    if ! run_audit_back; then
+      AUDIT_FINDINGS="${AUDIT_FINDINGS}back: high/critical haavoittuvuuksia löytyi (ks. tuloste yllä).\n"
+    fi
+  fi
+
+  if [ "${FRONT_CHANGED:-0}" = 1 ]; then
+    log_step "audit" "front: npm audit (allowlist: GHSA-qwww-vcr4-c8h2)" "npm audit --json | jq ..."
+    FRONT_AUDIT_OUTPUT="$(run_audit_front)"
+    if [ -n "$FRONT_AUDIT_OUTPUT" ]; then
+      AUDIT_FINDINGS="${AUDIT_FINDINGS}front: ei-sallittuja high/critical haavoittuvuuksia:\n$(echo "$FRONT_AUDIT_OUTPUT" | sed 's/^/  /')\n"
+    fi
+  fi
+
+  if [ -n "$AUDIT_FINDINGS" ]; then
+    echo "" >&2
+    log_fail "npm audit löysi haavoittuvuuksia:"
+    printf '%b' "$AUDIT_FINDINGS" | sed 's/^/    /' >&2
+    echo "   Korjausehdotus: npm audit fix  (tarkista muutokset ensin — --force voi rikkoa majorin, sitä ei ehdoteta automaattisesti)" >&2
+
+    if [ -t 0 ] && [ -t 1 ]; then
+      read -r -p "Jatketaanko committia silti? [y/N] " REPLY
+      case "$REPLY" in
+        [yY]*)
+          log_ok "Jatketaan haavoittuvuuksista huolimatta (vahvistettu)."
+          ;;
+        *)
+          echo "Committi keskeytetty." >&2
+          exit 1
+          ;;
+      esac
+    else
+      if [ "${SKIP_AUDIT_GATE:-}" = "1" ]; then
+        log_ok "SKIP_AUDIT_GATE=1 asetettu — ohitetaan audit-esto tietoisesti."
+      else
+        echo "" >&2
+        echo "Ei-interaktiivinen committi (esim. Claude Code) ja korjaamattomia haavoittuvuuksia." >&2
+        echo "Jos haluat jatkaa tietoisesti korjaamatta: SKIP_AUDIT_GATE=1 git commit ..." >&2
+        exit 1
+      fi
+    fi
+  else
+    log_ok "npm audit: ei uusia korjaamattomia haavoittuvuuksia."
+  fi
+fi
+
+log_ok "pre-commit-tarkistukset läpäisty."
+exit 0

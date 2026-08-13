@@ -1,0 +1,122 @@
+#!/usr/bin/env bash
+# KnowWine AI commit-msg: yksi claude -p -kutsu joka tekee kolme asiaa
+# kerralla: koodikatselmointi (BLOCKING/MAJOR/MINOR), commit-viestin
+# laatu (Conventional Commits) ja kuulumattomien muutosten tunnistus.
+# Estää committin VAIN BLOCKING-tason koodilöydöksellä — kaikki muu on
+# neuvoa-antavaa. Fail-open jos AI ei ole käytettävissä.
+# Ks. docs/ai-commit-quality-gate.md.
+set -uo pipefail
+
+HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib/run-checks.sh
+source "$HOOK_DIR/lib/run-checks.sh"
+
+MSG_FILE="$1"
+MSG="$(cat "$MSG_FILE")"
+
+CONVENTIONAL_RE='^(feat|fix|refactor|test|docs|perf|chore|build|ci|style)(\([a-z0-9-]+\))?(!)?: .+'
+
+STAGED_FILES="$(git -C "$REPO_ROOT" diff --cached --name-only)"
+if [ -z "$STAGED_FILES" ]; then
+  exit 0
+fi
+
+echo "==> KnowWine AI commit-msg: AI-arviointi" >&2
+
+# --- Ohitussäännöt ennen AI-kutsua (halpoja, eivät vaadi AI:ta) --------
+TRIVIAL_RE='\.(md|lock|svg|png|jpe?g|ico)$|(^|/)package-lock\.json$'
+NON_TRIVIAL="$(echo "$STAGED_FILES" | grep -vE "$TRIVIAL_RE" || true)"
+
+DIFF_LINES="$(
+  git -C "$REPO_ROOT" diff --cached --shortstat \
+    | grep -oE '[0-9]+ (insertion|deletion)s?' \
+    | awk '{s+=$1} END {print s+0}'
+)"
+
+SKIP_AI=0
+SKIP_REASON=""
+if [ -z "$NON_TRIVIAL" ]; then
+  SKIP_AI=1
+  SKIP_REASON="Triviaali muutos (vain dokumentaatio/lockfile/binäärit), AI-review ohitettu."
+elif [ "${DIFF_LINES:-0}" -gt 1500 ]; then
+  SKIP_AI=1
+  SKIP_REASON="Diffi liian suuri (${DIFF_LINES} riviä) automaattiseen AI-review'hun — tarkista tämä committi käsin."
+fi
+
+if [ "$SKIP_AI" = 1 ]; then
+  echo "ℹ $SKIP_REASON" >&2
+  if ! echo "$MSG" | grep -qE "$CONVENTIONAL_RE"; then
+    echo "ℹ Commit-viesti ei näytä noudattavan Conventional Commits -muotoa (ks. CONTRIBUTING.md): \"$MSG\"" >&2
+  fi
+  exit 0
+fi
+
+if ! command -v claude >/dev/null 2>&1; then
+  echo "⚠ claude-komentoa ei löydy PATHista — AI-review ohitettu (fail open)." >&2
+  exit 0
+fi
+
+DIFF_CONTENT="$(git -C "$REPO_ROOT" diff --cached)"
+
+PROMPT="$(cat <<PROMPT_EOF
+Olet nopea, diffiin skoopattu commit-portinvartija KnowWine AI -projektissa.
+Sinulle annetaan gitin commit-viesti, staged-tiedostolista ja staged-diff.
+
+Commit-viesti:
+${MSG}
+
+Staged-tiedostot:
+${STAGED_FILES}
+
+Diff:
+${DIFF_CONTENT}
+
+Tee KOLME asiaa:
+1. Koodikatselmointi — etsi VAIN BLOCKING-tason ongelmia (tietoturva, datan
+   menetys, rikkinäinen kontrakti, kaatuminen) ja ilmeisimmät MAJOR/MINOR-
+   huomiot. Älä listaa triviaaleja tyyliasioita.
+2. Commit-viestin laatu — vastaako Conventional Commits -muotoa
+   "type(scope): kuvaus" (tyypit: feat/fix/refactor/test/docs/perf/chore/
+   build/ci/style)? Vastaako tyyppi/scope oikeasti diffin sisältöä? Jos ei,
+   ehdota parempi yhden rivin viesti.
+3. Kuulumattomat muutokset — yhdistääkö tämä diffi toisiinsa liittymättömiä
+   muutoksia? Jos kyllä, listaa kuulumattomat tiedostot ja ehdota jakoa
+   erillisiin committeihin (esim. git restore --staged <tiedosto>).
+
+Vastaa lyhyesti, suomeksi. Päätä vastauksesi TASAN yhteen näistä riveistä:
+VERDICT: BLOCK
+tai
+VERDICT: OK
+Käytä BLOCK vain jos löysit todellisen BLOCKING-tason koodiongelman kohdassa 1.
+PROMPT_EOF
+)"
+
+log_step "AI" "claude -p (Haiku 4.5): koodikatselmointi + commit-viesti + scope" "claude -p --model claude-haiku-4-5-20251001"
+
+# macOS ei toimita GNU coreutils timeout/gtimeout-komentoa oletuksena — käytä
+# jompaakumpaa jos löytyy, muuten aja ilman timeout-wrapperia (fail-open
+# alempana suojaa silti jos claude -p jää roikkumaan pitkäksi aikaa).
+TIMEOUT_BIN=""
+if command -v timeout >/dev/null 2>&1; then
+  TIMEOUT_BIN="timeout 90"
+elif command -v gtimeout >/dev/null 2>&1; then
+  TIMEOUT_BIN="gtimeout 90"
+fi
+
+AI_EXIT=0
+AI_OUTPUT="$(cd "$REPO_ROOT" && $TIMEOUT_BIN claude -p --model claude-haiku-4-5-20251001 "$PROMPT" 2>&1)" || AI_EXIT=$?
+
+if [ "$AI_EXIT" -ne 0 ] || [ -z "$AI_OUTPUT" ]; then
+  echo "⚠ AI-review ei suoritettu (claude -p epäonnistui, koodi ${AI_EXIT}). Committi menee silti läpi." >&2
+  exit 0
+fi
+
+echo "$AI_OUTPUT" >&2
+
+if echo "$AI_OUTPUT" | grep -q "VERDICT: BLOCK"; then
+  echo "" >&2
+  echo "Committi keskeytetty: AI-review löysi BLOCKING-tason ongelman (ks. yllä)." >&2
+  exit 1
+fi
+
+exit 0
