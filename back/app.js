@@ -13,6 +13,7 @@ const {
   rateLimiter,
   loginRateLimiter,
 } = require('./utils/middleware');
+const cookieParser = require('cookie-parser');
 
 const app = express();
 // Trust exactly one hop (Render's edge proxy) so req.ip is the address Render
@@ -27,6 +28,7 @@ app.use(
       process.env.NODE_ENV === 'production'
         ? 'https://knowwine-ai.onrender.com'
         : 'http://localhost:5173', //dev
+    credentials: true,
   })
 );
 app.use(
@@ -44,6 +46,8 @@ app.use(
     },
   })
 );
+
+app.use(cookieParser());
 
 dotenv.config.app; // Request size limit (prevent large payloads that consume memory)
 app.use(express.json({ limit: '1mb' }));

@@ -27,5 +27,11 @@ const revokeAllForUser = async (userId) => {
     [userId]
   );
 };
+const revokeByHash = async (tokenHash) => {
+  await pool.query(
+    'UPDATE refresh_tokens SET revoked_at = now() WHERE token_hash = $1 AND revoked_at IS NULL',
+    [tokenHash]
+  );
+};
 
-module.exports = { create, findValidByHash, revoke, revokeAllForUser };
+module.exports = { create, findValidByHash, revoke, revokeAllForUser, revokeByHash };
