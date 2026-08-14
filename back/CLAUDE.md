@@ -95,16 +95,6 @@ Redis and GrapeMinds calls are skipped entirely outside `NODE_ENV=production`
   violation and JWT errors to specific status codes and everything else to a
   generic 500 (no stack traces leaked to clients).
 
-## In-flight, not yet in the README
-
-A refresh-token flow is being added on top of the single-JWT login documented
-in README §5.1 (`models/refreshToken.js` is new/untracked; `services/loginService.js`
-and `utils/db.js` have uncommitted changes adding a `refresh_tokens` table,
-token hashing, and `ACCESS_TOKEN_TTL`/`REFRESH_TOKEN_TTL`/`REFRESH_TOKEN_SECRET`/
-`COOKIE_NAME` env vars). `git status`/`git diff` before assuming the README's
-auth sequence diagram is current — it still describes the old single-token,
-1-hour-expiry flow.
-
 ## Conventions
 
 - ESLint (`eslint.config.mjs`) + Prettier enforce single quotes, semicolons,
