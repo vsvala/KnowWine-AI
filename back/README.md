@@ -7,15 +7,15 @@ concerns: user authentication, a user-curated wine list ("My Wines") backed
 by PostgreSQL, and a browsable wine catalogue proxied and cached from a
 third-party API (GrapeMinds).
 
-|                      |                                                |
-| -------------------- | ---------------------------------------------- |
-| Runtime              | Node.js, CommonJS                              |
-| Framework            | Express 5                                      |
-| Primary datastore    | PostgreSQL (Neon, serverless)                  |
-| Cache                | Redis (Upstash), production only               |
-| Auth                 | JWT (`jsonwebtoken`) + bcrypt password hashing |
-| External integration | GrapeMinds wine catalogue API                  |
-| Security middleware  | Helmet (CSP), CORS, hand-rolled rate limiting  |
+|                      |                                                                                                       |
+| -------------------- | ----------------------------------------------------------------------------------------------------- |
+| Runtime              | Node.js, CommonJS                                                                                     |
+| Framework            | Express 5                                                                                             |
+| Primary datastore    | PostgreSQL (Neon, serverless)                                                                         |
+| Cache                | Redis (Upstash), production only                                                                      |
+| Auth                 | JWT access token (15 min) + rotating httpOnly refresh-token cookie (7 days) + bcrypt password hashing |
+| External integration | GrapeMinds wine catalogue API                                                                         |
+| Security middleware  | Helmet (CSP), CORS, hand-rolled rate limiting                                                         |
 
 ## 2. High-Level Architecture
 
@@ -284,7 +284,21 @@ Every request passes through this middleware chain, in order
 
 ## 5. Domain Walkthrough
 
-### 5.1 Authentication (`POST /api/login`)
+### 5.1 Authentication (`POST /api/login`, `/refresh`, `/logout`)
+
+Login issues two tokens instead of one:
+
+- **Access token** — JWT signed with `SECRET`, `ACCESS_TOKEN_TTL` (15 min by
+  default). Returned in the JSON response body only. The frontend keeps it
+  in memory (`apiClient.ts`, never `localStorage`) and sends it as
+  `Authorization: Bearer <token>` on every request — a short TTL bounds how
+  long a leaked access token stays useful.
+- **Refresh token** — JWT signed with a _separate_ `REFRESH_TOKEN_SECRET`,
+  `REFRESH_TOKEN_TTL` (7 days by default). Set as an `httpOnly`,
+  `SameSite=Lax` cookie scoped to the `/api/login/refresh` path only, so
+  client-side JS never sees it and it isn't sent on unrelated requests. Only
+  its SHA-256 hash is persisted (`refresh_tokens` table) — the raw token
+  itself is never stored server-side.
 
 ```mermaid
 sequenceDiagram
@@ -293,6 +307,7 @@ sequenceDiagram
     participant LC as loginRouter
     participant LS as loginService
     participant UM as user model
+    participant RT as refreshToken model
     participant DB as PostgreSQL
 
     FE->>MW: POST /api/login {username, password}
@@ -306,19 +321,71 @@ sequenceDiagram
     UM-->>LS: user
     LS->>LS: bcrypt.compare(password, password_hash)
     alt credentials valid
-        LS->>LS: jwt.sign({username, id}, SECRET, 1h expiry)
-        LS-->>LC: {token, username, name}
-        LC-->>FE: 200 {token, username, name}
+        LS->>LS: sign access token (SECRET, 15 min) + refresh token (REFRESH_TOKEN_SECRET, 7d)
+        LS->>RT: create(userId, sha256(refreshToken), expiresAt)
+        RT->>DB: INSERT INTO refresh_tokens ...
+        LS-->>LC: {token, refreshToken, username, name, id}
+        LC-->>FE: Set-Cookie (httpOnly, refresh) + 200 {token, username, name, id}
     else invalid
-        LS-->>LC: throws Error('invalid username or password')
+        LS-->>LC: throws Error('INVALID_CREDENTIALS')
         LC-->>FE: 401 {error}
     end
 ```
 
+**Silent refresh, driven entirely by the frontend's axios interceptor**
+(`apiClient.ts`) rather than a background timer — nothing calls `/refresh`
+proactively; it fires reactively the first time a request meets an expired
+access token:
+
+```mermaid
+sequenceDiagram
+    participant FE as apiClient (axios interceptor)
+    participant LC as loginRouter
+    participant LS as loginService
+    participant RT as refreshToken model
+    participant DB as PostgreSQL
+
+    FE->>LC: any /api/... request, access token expired
+    LC-->>FE: 401
+    FE->>FE: getRefreshedToken() — dedupes concurrent callers onto one in-flight promise
+    FE->>LC: POST /api/login/refresh (cookie sent automatically by browser)
+    LC->>LS: refreshAccessToken(rawRefreshToken)
+    LS->>LS: jwt.verify(rawRefreshToken, REFRESH_TOKEN_SECRET)
+    LS->>RT: findValidByHash(sha256(rawRefreshToken))
+    alt token found and not yet revoked
+        RT-->>LS: stored row
+        LS->>RT: revoke(stored.id)
+        LS->>LS: sign new access + refresh token pair
+        LS->>RT: create(userId, sha256(newRefreshToken), expiresAt)
+        LS-->>LC: {token, refreshToken, username, name, id}
+        LC-->>FE: Set-Cookie (new refresh) + 200 {token, ...}
+        FE->>FE: retry the original request once, with the new access token
+    else token missing, expired, or already used
+        LS-->>LC: throws (MISSING_REFRESH_TOKEN / REFRESH_TOKEN_REUSED / JWT error)
+        LC->>LC: clear the refresh cookie
+        LC-->>FE: 401
+        FE->>FE: onAuthExpired() — logs out and redirects to /login
+    end
+```
+
+**Rotation with reuse detection:** every refresh consumes the current
+refresh token and issues a new one (`revoke` + `create` above), so a given
+refresh token is only ever valid for a single `/refresh` call. If a token
+that's already been revoked is presented again, that's treated as a signal
+the token may have been stolen and replayed — every refresh token for that
+user is revoked at once, forcing a full re-login on all sessions rather than
+trusting the request. See [Known Issues §8](#8-known-issues--technical-debt)
+for a legitimate false-positive case this causes (near-simultaneous refresh
+from two tabs).
+
+**Logout** (`POST /api/login/logout`) revokes only the current refresh
+token by its hash and clears the cookie; it does not touch other sessions
+for the same user.
+
 Downstream routes (`/api/mywines` POST/DELETE, `/api/users` DELETE) verify
-the JWT with `jwt.verify` and re-fetch the user from the database on every
-request — the token carries only `{ username, id }`, it is not trusted for
-authorization decisions beyond identifying the user.
+the access token with `jwt.verify` and re-fetch the user from the database
+on every request — the token carries only `{ username, id }`, it is not
+trusted for authorization decisions beyond identifying the user.
 
 ### 5.2 Wine catalogue — browsing (`GET /api/wines`)
 
@@ -444,6 +511,15 @@ All routes funnel unexpected errors to `next(error)`, handled centrally by
   response payload.
 - **CORS**: locked to a single explicit origin per environment, not a
   wildcard.
+- **Refresh token rotation + reuse detection** (§5.1): the refresh cookie is
+  `httpOnly`/`SameSite=Lax`, path-scoped to `/api/login/refresh`, and only
+  ever stored server-side as a SHA-256 hash. Each refresh consumes and
+  replaces the token; a replayed (already-consumed) token revokes every
+  refresh token for that user as a precaution against a stolen token.
+- **Access token never persisted client-side**: `apiClient.ts` keeps it in a
+  module-level JS variable, not `localStorage`/`sessionStorage` — an XSS
+  payload that can run JS can still steal it for its 15-minute lifetime, but
+  it can't read it out of storage after the fact or across page reloads.
 
 ## 8. Known Issues & Technical Debt
 
@@ -491,6 +567,20 @@ issues are currently outstanding.
    and every `:id` route param (`Number(req.params.id)` +
    `Number.isNaN` in both `users.js` and `mywines.js`) — those should move
    to `body()`/`param()` validators too for consistency.
+
+5. **Refresh-token reuse detection has a multi-tab false-positive case**
+   (§5.1). Two tabs of the same origin share one refresh cookie but each
+   holds its own in-memory access token. If both tabs' access tokens expire
+   close enough together that both fire `/refresh` before either response
+   lands, the second request presents a refresh token the first already
+   rotated away — indistinguishable, server-side, from a genuine replay —
+   so reuse detection revokes every token for that user and force-logs-out
+   both tabs. Two fixes considered, neither implemented yet: a short grace
+   period in `refreshAccessToken` that treats a just-rotated token as
+   benign if its replacement is still valid, or coordinating refresh calls
+   across tabs client-side (e.g. `BroadcastChannel`) so only one actually
+   hits the network. The grace-period approach is preferred — it fixes the
+   race for any client, not just this frontend.
 
 ## 9. Recommended Next Steps
 
