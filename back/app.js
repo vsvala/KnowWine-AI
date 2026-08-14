@@ -5,7 +5,6 @@ const mywinesRouter = require('./controllers/myWines');
 const usersRouter = require('./controllers/users');
 const loginRouter = require('./controllers/login');
 const winesRouter = require('./controllers/wines');
-const dotenv = require('dotenv');
 const helmet = require('helmet');
 const {
   unknownEndpoint,
@@ -49,9 +48,11 @@ app.use(
 
 app.use(cookieParser());
 
-dotenv.config.app; // Request size limit (prevent large payloads that consume memory)
+// Request size limit (prevent large payloads that consume memory)
 app.use(express.json({ limit: '1mb' }));
 
+// Global per-IP rate limit (15 min window, 50 req/window in production,
+// 500 in dev) — returns 429 once the window's request count is exceeded.
 app.use(rateLimiter);
 
 if (process.env.NODE_ENV === 'production') {

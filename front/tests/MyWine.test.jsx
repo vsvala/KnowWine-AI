@@ -5,11 +5,17 @@ import { AuthProvider } from '../src/context/AuthContext';
 import { NotificationProvider } from '../src/context/NotificationContext';
 import { MyWinesProvider } from '../src/context/MyWinesContext';
 import myWineService from '../src/services/myWines';
+import apiClient from '../src/services/apiClient';
 
 vi.mock('../src/services/myWines');
+vi.mock('../src/services/apiClient');
 
 test('renders content', async () => {
-  window.localStorage.setItem('loggedWineappUser', JSON.stringify({ token: 'test-token' }));
+  apiClient.getRefreshedToken.mockResolvedValue({
+    id: 1,
+    name: 'Test User',
+    username: 'testuser',
+  });
   myWineService.getAll.mockResolvedValue([
     { id: 1, name: 'Chablis', description: 'A crisp French white wine from Burgundy' },
   ]);

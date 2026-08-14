@@ -19,7 +19,10 @@ export const useMyWines = () => {
       try {
         const initialMyWines = await myWineService.getAll();
         setMyWines(initialMyWines);
-      } catch {
+      } catch (error) {
+        // Auth failures already trigger a redirect via apiClient's onAuthExpired handler,
+        // so skip the toast here to avoid a confusing double message.
+        if (axios.isAxiosError(error) && error.response?.status === 401) return;
         showNotification('Unable to load myWines', 'error');
       } finally {
         setIsLoading(false);
@@ -62,8 +65,8 @@ export const useMyWines = () => {
     },
     [myWines, showNotification]
   );
-  
-// Return a memoized object containing the state and functions to prevent unnecessary re-renders
+
+  // Return a memoized object containing the state and functions to prevent unnecessary re-renders
   return useMemo(
     () => ({ myWines, addWine, deleteWine, isLoading }),
     [myWines, addWine, deleteWine, isLoading]

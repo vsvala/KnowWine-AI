@@ -6,4 +6,9 @@ const login = async (credentials: { username: string; password: string }) => {
   return res.data;
 };
 
-export default { login };
+const logout = async () => {
+  await axios.post('/api/login/logout');
+};
+
+export default { login, logout };
+

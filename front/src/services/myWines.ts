@@ -1,51 +1,33 @@
 // REST client for the /api/mywines backend resource (GET/POST/PUT/DELETE).
-// setToken() must be called after login so requests can attach the
-// Authorization header.
-import axios from 'axios';
 
-let token: string | null = null;
+import api from './apiClient';
 
-const setToken = (newToken: string) => {
-  token = `Bearer ${newToken}`;
-};
+const { apiClient } = api;
 
-const baseUrl = '/api/mywines';
-//'http://localhost:3001/api/mywines'
+const baseUrl = '/mywines';
 type ItemInput = {
   name: string;
   description: string;
 };
 
 const getAll = () => {
-  const config = {
-    headers: { Authorization: token },
-  };
-  const request = axios.get(baseUrl, config);
+  const request = apiClient.get(baseUrl);
   return request.then((response) => response.data);
 };
 
 const create = (newObject: ItemInput) => {
-  const config = {
-    headers: { Authorization: token },
-  };
-  const request = axios.post(baseUrl, newObject, config);
+  const request = apiClient.post(baseUrl, newObject);
   return request.then((response) => response.data);
 };
 
 const update = (id: number, newObject: ItemInput) => {
-  const config = {
-    headers: { Authorization: token },
-  };
-  const request = axios.put(`${baseUrl}/${id}`, newObject, config);
+  const request = apiClient.put(`${baseUrl}/${id}`, newObject);
   return request.then((response) => response.data);
 };
 
 const deleteWine = (id: number) => {
-  console.log('axios.delete');
-  const config = {
-    headers: { Authorization: token },
-  };
-  return axios.delete(`${baseUrl}/${id}`, config);
+  const request = apiClient.delete(`${baseUrl}/${id}`);
+  return request.then((response) => response.data);
 };
 
 export default {
@@ -53,5 +35,4 @@ export default {
   create,
   update,
   deleteWine,
-  setToken,
 };

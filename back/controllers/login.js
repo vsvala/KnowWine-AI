@@ -18,7 +18,9 @@ loginRouter.post('/', async (req, res, next) => {
     const result = await loginService.loginUser(username, password);
 
     setRefreshCookie(res, result.refreshToken);
-    res.status(200).json({ token: result.token, username: result.username, name: result.name });
+    res
+      .status(200)
+      .json({ token: result.token, username: result.username, name: result.name, id: result.id });
   } catch (error) {
     if (error.message === 'INVALID_CREDENTIALS') {
       return res.status(401).json({ error: 'invalid username or password' });
@@ -44,7 +46,9 @@ loginRouter.post('/refresh', async (req, res, next) => {
     const rawRefreshToken = req.cookies[process.env.COOKIE_NAME];
     const result = await loginService.refreshAccessToken(rawRefreshToken);
     setRefreshCookie(res, result.refreshToken);
-    res.status(200).json({ token: result.token, username: result.username, name: result.name, id: result.id });
+    res
+      .status(200)
+      .json({ token: result.token, username: result.username, name: result.name, id: result.id });
   } catch (error) {
     if (
       error.message === 'MISSING_REFRESH_TOKEN' ||

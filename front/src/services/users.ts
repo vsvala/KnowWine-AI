@@ -1,43 +1,16 @@
-import axios from 'axios';
-const baseUrl = '/api/users';
+// Auth is handled by the shared apiClient, not by this module: its request
+// interceptor attaches the Authorization header on every call, and its
+// response interceptor transparently refreshes an expired access token
+// (via the httpOnly refresh cookie) and retries the request once.
+import api from './apiClient';
+const { apiClient } = api;
 
-let token: string | null = null;
-
-const setToken = (newToken: string) => {
-  token = `Bearer ${newToken}`;
-};
+const baseUrl = '/users';
 
 const getAll = () => {
-  const config = {
-    headers: { Authorization: token },
-  };
-
-  const request = axios.get(baseUrl, config);
+  const request = apiClient.get(baseUrl);
   return request.then((response) => response.data);
 };
-export default { getAll, setToken };
 
-//using pure fetch instead of axios to avoid adding axios as a dependency for this service
-
-// export default { getAll, setToken };
-
-// const baseUrl = '/api/users';
-
-// let token: string | null = null;
-
-// const setToken = (newToken: string) => {
-//   token = `Bearer ${newToken}`;
-// };
-
-// const getAll = async () => {
-//   const config: RequestInit = {
-//     headers: token ? { Authorization: token } : undefined,
-//   };
-//   const response = await fetch(baseUrl, config);
-//   if(!response.ok) {
-//     throw new Error('Failed to fetch users');
-//   }
-//   return await response.json()
-// };
-
+export default { getAll };
 
