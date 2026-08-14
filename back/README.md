@@ -7,15 +7,15 @@ concerns: user authentication, a user-curated wine list ("My Wines") backed
 by PostgreSQL, and a browsable wine catalogue proxied and cached from a
 third-party API (GrapeMinds).
 
-| | |
-|---|---|
-| Runtime | Node.js, CommonJS |
-| Framework | Express 5 |
-| Primary datastore | PostgreSQL (Neon, serverless) |
-| Cache | Redis (Upstash), production only |
-| Auth | JWT (`jsonwebtoken`) + bcrypt password hashing |
-| External integration | GrapeMinds wine catalogue API |
-| Security middleware | Helmet (CSP), CORS, hand-rolled rate limiting |
+|                      |                                                |
+| -------------------- | ---------------------------------------------- |
+| Runtime              | Node.js, CommonJS                              |
+| Framework            | Express 5                                      |
+| Primary datastore    | PostgreSQL (Neon, serverless)                  |
+| Cache                | Redis (Upstash), production only               |
+| Auth                 | JWT (`jsonwebtoken`) + bcrypt password hashing |
+| External integration | GrapeMinds wine catalogue API                  |
+| Security middleware  | Helmet (CSP), CORS, hand-rolled rate limiting  |
 
 ## 2. High-Level Architecture
 
@@ -232,14 +232,14 @@ flowchart TB
     C --> S --> R --> D
 ```
 
-| Layer | Repo mapping | Rule |
-|---|---|---|
-| Controller | `controllers/` | Only layer that touches `req`/`res` |
-| Service | `services/` | Only layer that contains business rules |
-| Repository | `models/` — same role, different name | Only layer that writes SQL |
-| Database | PostgreSQL | No logic — storage only |
+| Layer      | Repo mapping                          | Rule                                    |
+| ---------- | ------------------------------------- | --------------------------------------- |
+| Controller | `controllers/`                        | Only layer that touches `req`/`res`     |
+| Service    | `services/`                           | Only layer that contains business rules |
+| Repository | `models/` — same role, different name | Only layer that writes SQL              |
+| Database   | PostgreSQL                            | No logic — storage only                 |
 
-`models/` in this codebase already *is* the repository layer; naming it
+`models/` in this codebase already _is_ the repository layer; naming it
 `repositories/` instead is a cosmetic rename, not a structural change —
 useful mainly if the team wants the more common cross-language vocabulary
 (Java/C#/NestJS shops call this layer "repository", Node/Express projects
@@ -247,13 +247,13 @@ often say "model" for the same thing).
 
 ## 3. Layered Design
 
-| Layer | Responsibility | Should know about |
-|---|---|---|
+| Layer                                                                 | Responsibility                                                                                  | Should know about                        |
+| --------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- | ---------------------------------------- |
 | **Routes** (`routes/`, target — currently merged into `controllers/`) | Map HTTP verb + path → controller function, attach route-level middleware (e.g. `authenticate`) | Express routing only — no business logic |
-| **Controllers** (`controllers/`) | Parse `req`, call service/model, shape HTTP response, map errors to status codes | Express, HTTP |
-| **Services** (`services/`) | Business rules: caching strategy, external API calls, orchestration across models | Domain logic — nothing about `req`/`res` |
-| **Models** (`models/`) | Raw SQL access via `pg` | SQL only |
-| **Utils** (`utils/`) | Cross-cutting: DB pool, Redis client, config, Express middleware | Infra |
+| **Controllers** (`controllers/`)                                      | Parse `req`, call service/model, shape HTTP response, map errors to status codes                | Express, HTTP                            |
+| **Services** (`services/`)                                            | Business rules: caching strategy, external API calls, orchestration across models               | Domain logic — nothing about `req`/`res` |
+| **Models** (`models/`)                                                | Raw SQL access via `pg`                                                                         | SQL only                                 |
+| **Utils** (`utils/`)                                                  | Cross-cutting: DB pool, Redis client, config, Express middleware                                | Infra                                    |
 
 **Current state:** all four domains — **wines**, **mywines**, **login**, and
 **users** — follow the service-layer split fully: their `controllers/`
@@ -418,12 +418,12 @@ delete another user's entry even with a valid token.
 All routes funnel unexpected errors to `next(error)`, handled centrally by
 `errorHandler` (`utils/middleware.js`):
 
-| Condition | Response |
-|---|---|
-| Malformed JSON body | `400 Invalid JSON` |
-| Postgres unique violation (`23505`) | `400 name must be unique` |
-| Invalid/expired JWT | `401 token invalid` / `401 token expired` |
-| Anything else | `500 Internal server error` (generic message — no stack trace leaked) |
+| Condition                           | Response                                                              |
+| ----------------------------------- | --------------------------------------------------------------------- |
+| Malformed JSON body                 | `400 Invalid JSON`                                                    |
+| Postgres unique violation (`23505`) | `400 name must be unique`                                             |
+| Invalid/expired JWT                 | `401 token invalid` / `401 token expired`                             |
+| Anything else                       | `500 Internal server error` (generic message — no stack trace leaked) |
 
 ## 7. Security Posture
 
@@ -565,7 +565,7 @@ hand-rolled SQL in `models/` incrementally (one table at a time —
 - `models/` gets rewritten file-by-file against Drizzle's query builder —
   mechanical but not free; sequence it one table at a time rather than a
   big-bang rewrite so `mywines`/`users` tests keep passing throughout.
-- The first `drizzle-kit` migration must snapshot the *current* schema
+- The first `drizzle-kit` migration must snapshot the _current_ schema
   before any new `ALTER TABLE` lands, or the migration history starts
   from a false baseline.
 
@@ -593,7 +593,7 @@ the entire monthly budget, in a single run.
 **Decision:** Clamp browsing server-side to pages **1–5** (`MAX_BROWSABLE_PAGES` in
 `wineService.js`), each cached under its own Redis key with a 60-day TTL. This bounds worst-case
 first-time cost to 5 requests total (then free until the cache expires), and bounds it
-*predictably* — unlike search, where a user can type arbitrarily many distinct terms, "browsing"
+_predictably_ — unlike search, where a user can type arbitrarily many distinct terms, "browsing"
 has a hard, known ceiling of 5 page-loads regardless of how many users click through it.
 
 **Why not full pagination:** Sequential pages share no cache-reuse advantage the way popular

@@ -71,7 +71,7 @@ Redis and GrapeMinds calls are skipped entirely outside `NODE_ENV=production`
 - Plain CommonJS (`require`/`module.exports`), no TypeScript, no bundler —
   don't introduce ESM `import` syntax or add a build step for this package.
 - Current layering per domain (`wines`, `mywines`, `login`, `users`) is
-  `controllers/<domain>.js` (Express `Router` — routing *and* handler logic
+  `controllers/<domain>.js` (Express `Router` — routing _and_ handler logic
   merged) → `services/<domain>Service.js` (business logic, no `req`/`res`) →
   `models/*.js` (raw parameterized SQL via `pg`, no ORM). All four domains
   are already fully migrated to this split; the only remaining reshuffle is
@@ -85,7 +85,7 @@ Redis and GrapeMinds calls are skipped entirely outside `NODE_ENV=production`
   it serves the local `wines.json` fixture (search/browse/detail all read
   from it, ignoring pagination), so nothing in the wine-catalogue path talks
   to Redis or GrapeMinds in dev/test. In production it proxies to the
-  GrapeMinds API through Redis-cached lookups, with catalogue *browsing*
+  GrapeMinds API through Redis-cached lookups, with catalogue _browsing_
   hard-clamped server-side to pages 1–5 (`MAX_BROWSABLE_PAGES`) and a
   250-request/month quota tracked in Redis — see ADR-002 in the README
   before changing that bound; it's a deliberate quota-safety cap, not an
