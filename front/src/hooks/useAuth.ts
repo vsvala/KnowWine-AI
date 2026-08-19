@@ -14,7 +14,6 @@ export const useAuth = () => {
   const navigate = useNavigate();
   const [isInitializing, setIsInitializing] = useState(true);
 
-
   // On mount, silently try to restore the session from the refresh cookie so a page reload doesn't log the user out.
   useEffect(() => {
     apiClient
@@ -22,11 +21,11 @@ export const useAuth = () => {
       .then((data) => {
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setUser({ id: data.id, name: data.name, username: data.username });
-      })        
+      })
       // no valid refresh-cookie — not logged in, no error, just no user
       .catch(() => {})
       .finally(() => {
-        setIsInitializing(false); 
+        setIsInitializing(false);
       });
   }, []);
 
@@ -42,22 +41,22 @@ export const useAuth = () => {
   );
 
   const logout = useCallback(async () => {
-  try {
-    await loginService.logout();
-  } catch (error) {
-    console.error('Logout request failed:', error);
-  } finally {
-    apiClient.setAccessToken(null);
-    setUser(null);
-    navigate('/login');
-  }
-}, [navigate]);
+    try {
+      await loginService.logout();
+    } catch (error) {
+      console.error('Logout request failed:', error);
+    } finally {
+      apiClient.setAccessToken(null);
+      setUser(null);
+      navigate('/login');
+    }
+  }, [navigate]);
   useEffect(() => {
     apiClient.setOnAuthExpired(logout);
   }, [logout]);
 
-return useMemo(
-  () => ({ user, login, logout, isInitializing }),
-  [user, login, logout, isInitializing]
-);
+  return useMemo(
+    () => ({ user, login, logout, isInitializing }),
+    [user, login, logout, isInitializing]
+  );
 };

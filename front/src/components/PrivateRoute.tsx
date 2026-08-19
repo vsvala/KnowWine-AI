@@ -7,7 +7,7 @@ type PrivateRouteProps = {
 };
 
 const PrivateRoute = ({ redirectPath = '/' }: PrivateRouteProps) => {
-const { user, isInitializing } = useAuthContext();
+  const { user, isInitializing } = useAuthContext();
 
   if (isInitializing) return null; // tai esim. latausanimaatio
   if (!user) return <Navigate to={redirectPath} replace />;

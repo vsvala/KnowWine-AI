@@ -1,9 +1,13 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
+import { useLocation } from '../hooks/useLocation';
 
 const Home = () => {
+  const [coords, setCoords] = useState<[number, number] | null>(null);
+  const [geoError, setGeoError] = useState<string | null>(null);
   const mapContainer = useRef<HTMLDivElement>(null);
+  const { location: place, error: placeError } = useLocation(coords);
 
   useEffect(() => {
     if (!mapContainer.current) return;
@@ -15,6 +19,8 @@ const Home = () => {
       center: [0, 0],
     });
 
+    let cancelled = false;
+
     map.on('style.load', () => {
       map.setProjection({ type: 'globe' });
       map.setSky({
@@ -25,9 +31,30 @@ const Home = () => {
         'fog-color': '#808080',
         'fog-ground-blend': 1,
       } as maplibregl.SkySpecification);
-    });
 
-    return () => map.remove();
+      // Only fly to the user's location once the globe view is actually in
+      // place, so the flight happens smoothly instead of snapping into the
+      // globe projection mid-flight.
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            if (cancelled) return;
+            const coords: [number, number] = [position.coords.longitude, position.coords.latitude];
+            setCoords(coords);
+            map.flyTo({ center: coords, zoom: 2, essential: true });
+            new maplibregl.Marker({ color: '#ff0000' }).setLngLat(coords).addTo(map);
+          },
+          (error) => {
+            console.warn('Geolocation unavailable:', error.message);
+            setGeoError('Selain ei saanut sijaintiasi.');
+          }
+        );
+      }
+    });
+    return () => {
+      cancelled = true;
+      map.remove();
+    };
   }, []);
 
   return (
@@ -39,6 +66,11 @@ const Home = () => {
       </div>
       Welcome to know wine site... Here you can ..
       <div ref={mapContainer} style={{ width: '100%', height: '500px' }} />
+      {coords && place ? (
+        <p>{place.city}, {place.country}</p>
+      ) : (geoError ?? placeError) ? (
+        <p>{geoError ?? placeError}</p>
+      ) : null}
     </div>
   );
 };
