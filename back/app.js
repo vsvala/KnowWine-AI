@@ -5,6 +5,7 @@ const mywinesRouter = require('./controllers/myWines');
 const usersRouter = require('./controllers/users');
 const loginRouter = require('./controllers/login');
 const winesRouter = require('./controllers/wines');
+const locationRouter = require('./controllers/location');
 const helmet = require('helmet');
 const {
   unknownEndpoint,
@@ -63,6 +64,7 @@ app.use('/api/mywines', mywinesRouter);
 app.use('/api/users', usersRouter);
 app.use('/api/login', loginRateLimiter, loginRouter);
 app.use('/api/wines', winesRouter);
+app.use('/api/location', locationRouter);
 
 app.get('/health', (req, res) => {
   res.send('ok');
