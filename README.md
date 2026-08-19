@@ -9,14 +9,13 @@ It demonstrates modern software engineering practices including authentication, 
 
 **Live app:** https://knowwine-ai.onrender.com/
 
-
-
 ## Features
 
 Key Features
 🍷 Browse wine catalogue via external API (GrapeMinds)
 ⭐ Personal “My Wines” collection (add / delete / manage)
 🔐 JWT authentication (secure login & registration)
+🌍 Geolocation-based landing page: flies to your location and shows your city (reverse geocoding via Photon/OpenStreetMap)
 ⚡ Redis caching for production performance optimization
 🧾 Input validation + rate limiting (API protection)
 👤 User system with hashed passwords (bcrypt)
@@ -24,19 +23,20 @@ Key Features
 
 ## Tech stack
 
-| Layer    | Technology                                     |
-| -------- | ---------------------------------------------- |
-| Frontend | React (TypeScript), Vite, Axios, TanStack Query |
-| Backend  | Node.js, Express 5                             |
-| Database | PostgreSQL (Neon)                              |
-| Cache    | Redis (ioredis + Upstash) — production only    |
-| Auth     | JWT (`jsonwebtoken`), bcrypt                   |
-| Testing  | Unit tests: Vitest + React Testing Library     |
-| Testing  | Integration tests: Node + Supertest            |
-| Testing  | E2E tests: Playwright                          |
-| CI/CD    | CI/CD via GitHub Actions                       |
-| Deploy   | Automated deploy Render.com                    |
-| Docker   | local PostgreSQL + test DB                     |
+| Layer     | Technology                                      |
+| --------- | ----------------------------------------------- |
+| Frontend  | React (TypeScript), Vite, Axios, TanStack Query |
+| Backend   | Node.js, Express 5                              |
+| Database  | PostgreSQL (Neon)                               |
+| Cache     | Redis (ioredis + Upstash) — production only     |
+| Geocoding | Photon (OpenStreetMap-based reverse geocoding)  |
+| Auth      | JWT (`jsonwebtoken`), bcrypt                    |
+| Testing   | Unit tests: Vitest + React Testing Library      |
+| Testing   | Integration tests: Node + Supertest             |
+| Testing   | E2E tests: Playwright                           |
+| CI/CD     | CI/CD via GitHub Actions                        |
+| Deploy    | Automated deploy Render.com                     |
+| Docker    | local PostgreSQL + test DB                      |
 
 ## Architecture
 
@@ -62,6 +62,7 @@ Key Features
 │  GET  /api/wines/:id      → Redis cache → GrapeMinds /wines/:id│
 │  GET  /api/mywines        → PostgreSQL                         │
 │  POST /api/mywines        → JWT verify → PostgreSQL            │
+│  GET  /api/location       → Photon /reverse (unauth, no cache) │
 └───────┬─────────────────────────┬───────────────────────────────┘
         │                         │
         ▼                         ▼
@@ -77,6 +78,8 @@ Key Features
 ```
 
 In **development** the frontend dev server (port 5173) proxies `/api/*` to the backend (port 3001). In **production** the backend serves the built frontend as static files from `back/dist`.
+
+`/api/location` is a fourth external integration alongside PostgreSQL/Redis/GrapeMinds, not shown as its own box above for space — it calls [Photon](https://photon.komoot.io/) (photon.komoot.io) directly, with no cache and no API key. See `back/README.md` §5.4 and `docs/adr.md` ADR-003 for why and its known tradeoffs.
 
 ### Data model
 
@@ -103,22 +106,41 @@ my_wines
         │
         ├── Look up user by username
         ├── bcrypt.compare(password, password_hash)
-        └── jwt.sign({ id, username }, SECRET, { expiresIn: '1h' })
+        ├── sign access token   (SECRET, 15 min)
+        └── sign refresh token  (REFRESH_TOKEN_SECRET, 7 days)
                 │
                 ▼
-        { token, username, name }  → stored in localStorage
+        { token, username, name, id }  → held in memory only (front/src/services/apiClient.ts)
+        Set-Cookie: refresh token       → httpOnly, path=/api/login/refresh, not readable by JS
 
-2. POST /api/mywines  Authorization: Bearer <token>
+2. GET/POST /api/mywines  Authorization: Bearer <token>
         │
         ├── jwt.verify(token, SECRET)  → { id, username }
-        ├── Look up user by id
-        ├── Validate name + description
-        └── INSERT INTO my_wines
+        ├── Re-fetch the user by id (token payload alone isn't trusted for authorization)
+        └── ...request proceeds
+
+3. Access token expires (15 min) → the next request gets a 401
+        │
+        ├── apiClient's response interceptor catches the 401
+        ├── POST /api/login/refresh   (browser sends the httpOnly cookie automatically)
+        ├── backend verifies + rotates the refresh token, issues a new access+refresh pair
+        └── the original request is retried once, with the new access token
 ```
+
+No token is ever written to `localStorage` — the access token lives only in memory and the
+refresh token only in an httpOnly cookie, so page JavaScript can't read either one. See
+`back/README.md` §5.1 for the full backend flow, including refresh-token rotation and reuse
+detection.
 
 ### Frontend auth state
 
-Login state, the `login`/`logout` actions, and the auto-login-from-`localStorage` effect live in a single `useAuth` hook (`front/src/hooks/useAuth.ts`), exposed app-wide through `AuthContext` (`front/src/context/AuthContext.tsx`) via a `useAuthContext()` consumer hook. `main.tsx` wraps the app in `<AuthProvider>`, so any component can read `user` or call `login`/`logout` without prop drilling.
+Session state, the `login`/`logout` actions, and the silent session-restore-from-cookie effect on
+mount live in a single `useAuth` hook (`front/src/hooks/useAuth.ts`), exposed app-wide through
+`AuthContext` (`front/src/context/AuthContext.tsx`) via a `useAuthContext()` consumer hook.
+`main.tsx` wraps the app in `<AuthProvider>`, so any component can read `user` or call
+`login`/`logout` without prop drilling. The access token itself isn't part of this hook's state —
+it's held in `front/src/services/apiClient.ts`'s module-level memory, attached to every request by
+an axios interceptor, and silently refreshed on a 401; see `front/CLAUDE.md` §Authentication.
 
 ### Frontend wine state
 
@@ -158,17 +180,17 @@ KnowWine/
 
 ## API endpoints
 
-| Method | Path               | Auth required | Description                   |
-| ------ | ------------------ | ------------- | ----------------------------- |
+| Method | Path               | Auth required | Description                                                                                                                                                                                                     |
+| ------ | ------------------ | ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | GET    | `/api/wines`       | No            | Browsable catalogue page (100 wines). `?page=` (1–5, clamped server-side) selects which cached page; `?search=` (min 3 characters) instead proxies to GrapeMinds' own search endpoint across the full catalogue |
-| GET    | `/api/wines/:id`   | No            | Single wine's full detail, proxied from GrapeMinds |
-| GET    | `/api/mywines`     | No            | List all user-saved wines     |
-| GET    | `/api/mywines/:id` | No            | Get a single saved wine       |
-| POST   | `/api/mywines`     | Yes (Bearer)  | Add a wine to My Wines        |
-| DELETE | `/api/mywines/:id` | Yes (Bearer)  | Delete a wine from My Wines   |
-| GET    | `/api/users`       | Yes (Bearer)  | List users                    |
-| POST   | `/api/users`       | No            | Register a new user           |
-| POST   | `/api/login`       | No            | Login and receive a JWT token |
+| GET    | `/api/wines/:id`   | No            | Single wine's full detail, proxied from GrapeMinds                                                                                                                                                              |
+| GET    | `/api/mywines`     | No            | List all user-saved wines                                                                                                                                                                                       |
+| GET    | `/api/mywines/:id` | No            | Get a single saved wine                                                                                                                                                                                         |
+| POST   | `/api/mywines`     | Yes (Bearer)  | Add a wine to My Wines                                                                                                                                                                                          |
+| DELETE | `/api/mywines/:id` | Yes (Bearer)  | Delete a wine from My Wines                                                                                                                                                                                     |
+| GET    | `/api/users`       | Yes (Bearer)  | List users                                                                                                                                                                                                      |
+| POST   | `/api/users`       | No            | Register a new user                                                                                                                                                                                             |
+| POST   | `/api/login`       | No            | Login and receive a JWT token                                                                                                                                                                                   |
 
 ### My Wines validation
 
@@ -368,17 +390,18 @@ very likely references a wine outside whatever page happens to be cached.
 
 ## Redis caching
 
-| Key pattern | What it caches | TTL |
-|---|---|---|
-| `grapeminds:wines:page:<1-5>` | One page (100 wines) of the browsable catalogue | 60 days |
-| `grapeminds:search:<term>` | Search results for one normalized search term | 60 days |
-| `grapeminds:wine:<id>` | A single wine's full detail (or cached `null` for a 404) | 60 days |
-| `grapeminds:quota:<YYYY-MM>` | Count of real (non-cached) GrapeMinds calls made this month | ~40 days |
+| Key pattern                   | What it caches                                              | TTL      |
+| ----------------------------- | ----------------------------------------------------------- | -------- |
+| `grapeminds:wines:page:<1-5>` | One page (100 wines) of the browsable catalogue             | 60 days  |
+| `grapeminds:search:<term>`    | Search results for one normalized search term               | 60 days  |
+| `grapeminds:wine:<id>`        | A single wine's full detail (or cached `null` for a 404)    | 60 days  |
+| `grapeminds:quota:<YYYY-MM>`  | Count of real (non-cached) GrapeMinds calls made this month | ~40 days |
 
 In **development** and **test**, none of this runs — `GET /api/wines*` is served from the local
 `back/wines.json` fixture and Redis isn't used at all.
 
 In **production**, every cache miss:
+
 1. Increments `grapeminds:quota:<current month>` and checks it against the 250 cap **before**
    the request goes out — once the quota is spent, the backend throws instead of calling
    GrapeMinds, rather than silently going over.
@@ -468,10 +491,10 @@ git commit -m "wip: experimenting with layout #skip"
 
 **Required GitHub Secrets:**
 
-| Secret | Purpose |
-| --- | --- |
+| Secret                   | Purpose                                                     |
+| ------------------------ | ----------------------------------------------------------- |
 | `RENDER_DEPLOY_HOOK_URL` | Triggers Render deploy (Dashboard → Settings → Deploy Hook) |
-| `GITHUB_TOKEN` | Auto-provided — used for pushing version tags |
+| `GITHUB_TOKEN`           | Auto-provided — used for pushing version tags               |
 
 ### Manual deploy
 

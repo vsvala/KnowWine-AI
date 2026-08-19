@@ -14,7 +14,7 @@ third-party API (GrapeMinds).
 | Primary datastore    | PostgreSQL (Neon, serverless)                                                                         |
 | Cache                | Redis (Upstash), production only                                                                      |
 | Auth                 | JWT access token (15 min) + rotating httpOnly refresh-token cookie (7 days) + bcrypt password hashing |
-| External integration | GrapeMinds wine catalogue API                                                                         |
+| External integration | GrapeMinds wine catalogue API, Photon reverse geocoding                                               |
 | Security middleware  | Helmet (CSP), CORS, hand-rolled rate limiting                                                         |
 
 ## 2. High-Level Architecture
@@ -30,6 +30,7 @@ flowchart TB
         RUsers["/api/users"]
         RMyWines["/api/mywines"]
         RWines["/api/wines"]
+        RLocation["/api/location"]
         Auth["authenticate middleware\n(per-route: mywines GET '/' + POST + DELETE,\nusers DELETE)"]
         ErrH["errorHandler (centralized)"]
     end
@@ -39,6 +40,7 @@ flowchart TB
         WinesSvc["wineService\n(implemented)"]
         LoginSvc["loginService\n(implemented)"]
         UserSvc["userService\n(implemented)"]
+        LocationSvc["locationService\n(implemented)"]
     end
 
     subgraph Models["models/ (data access)"]
@@ -49,9 +51,10 @@ flowchart TB
     PG[("PostgreSQL — Neon")]
     RD[("Redis — Upstash\nproduction only")]
     GM[["GrapeMinds API\n(external, paid)"]]
+    Photon[["Photon API\n(external, free)"]]
 
     FE -->|HTTPS / JSON| MW
-    MW --> RLogin & RUsers & RMyWines & RWines
+    MW --> RLogin & RUsers & RMyWines & RWines & RLocation
 
     RUsers -.gated by.-> Auth
     RMyWines -.gated by.-> Auth
@@ -62,16 +65,19 @@ flowchart TB
     RMyWines --> MyWinesSvc
     MyWinesSvc --> MyWinesModel
     RWines --> WinesSvc
+    RLocation --> LocationSvc
 
     UserModel --> PG
     MyWinesModel --> PG
     WinesSvc --> RD
     WinesSvc --> GM
+    LocationSvc --> Photon
 
     RLogin -. on error .-> ErrH
     RUsers -. on error .-> ErrH
     RMyWines -. on error .-> ErrH
     RWines -. on error .-> ErrH
+    RLocation -. on error .-> ErrH
 ```
 
 Dashed `-.gated by.->` arrows mark routes that run the shared `authenticate`
@@ -102,6 +108,7 @@ flowchart TB
         RUsers["/api/users"]
         RMyWines["/api/mywines"]
         RWines["/api/wines"]
+        RLocation["/api/location"]
         Auth["authenticate middleware"]
     end
 
@@ -110,6 +117,7 @@ flowchart TB
         UsersC["usersController"]
         MyWinesC["myWinesController"]
         WinesC["winesController"]
+        LocationC["locationController"]
     end
 
     subgraph Services["services/ — business logic (fully migrated)"]
@@ -117,6 +125,7 @@ flowchart TB
         UserSvc["userService"]
         MyWinesSvc["myWineService"]
         WinesSvc["wineService"]
+        LocationSvc["locationService"]
     end
 
     subgraph Models["models/ — SQL access"]
@@ -127,6 +136,7 @@ flowchart TB
     PG[("PostgreSQL — Neon")]
     RD[("Redis — Upstash, prod only")]
     GM[["GrapeMinds API"]]
+    Photon[["Photon API"]]
 
     FE -->|HTTPS / JSON| MW --> Routes
 
@@ -138,11 +148,13 @@ flowchart TB
     RUsers --> UsersC --> UserSvc --> UserModel
     RMyWines --> MyWinesC --> MyWinesSvc --> MyWinesModel
     RWines --> WinesC --> WinesSvc
+    RLocation --> LocationC --> LocationSvc
 
     UserModel --> PG
     MyWinesModel --> PG
     WinesSvc --> RD
     WinesSvc --> GM
+    LocationSvc --> Photon
 
     Controllers -. on error .-> ErrH
 ```
@@ -192,11 +204,13 @@ flowchart TB
         PG[("PostgreSQL — Neon")]
         RD[("Redis — Upstash")]
         GM[["GrapeMinds API"]]
+        Photon[["Photon API"]]
     end
 
     FE --> MW --> Routes --> Ctrl --> Svc --> Mdl --> PG
     Svc -.-> RD
     Svc -.-> GM
+    Svc -.-> Photon
 
     Utils["utils/ — config, db pool, redis client, Express middleware\n(cross-cutting: available to every layer above, belongs to none of them)"]
     Utils -.-> Routes
@@ -205,7 +219,7 @@ flowchart TB
     Utils -.-> Mdl
 ```
 
-Reading bottom to top: **infrastructure** (Postgres/Redis/GrapeMinds) is
+Reading bottom to top: **infrastructure** (Postgres/Redis/GrapeMinds/Photon) is
 reached only through **models** (SQL) or directly from **services** for the
 two external stores that aren't relational data; **services** hold all
 business logic and never touch `req`/`res`; **controllers** are the only
@@ -390,7 +404,7 @@ trusted for authorization decisions beyond identifying the user.
 ### 5.2 Wine catalogue — browsing (`GET /api/wines`)
 
 GrapeMinds' real catalogue has ~264,700 wines across ~2,650 pages of 100; the app deliberately
-never tries to mirror it — see §5.2's quota note and [ADR-002](#adr-002-bound-catalogue-browsing-to-5-pages-instead-of-full-pagination).
+never tries to mirror it — see §5.2's quota note and [ADR-002](../docs/adr.md#adr-002-bound-catalogue-browsing-to-5-pages-instead-of-full-pagination).
 
 ```mermaid
 sequenceDiagram
@@ -480,6 +494,52 @@ requesting user (`user_id` foreign key). Deletes verify ownership
 (`wine.user_id === user.id`) before allowing the operation — a user cannot
 delete another user's entry even with a valid token.
 
+### 5.4 Location — reverse geocoding (`GET /api/location`)
+
+Unauthenticated. Resolves a `lat`/`lon` pair (the frontend's browser
+geolocation coordinates — see `front/docs/ARCHITECTURE.md` §12 for the
+client side) to a human-readable place name via
+[Photon](https://photon.komoot.io/), an open-source, OpenStreetMap-based
+geocoder. The backend calls Photon rather than letting the browser call it
+directly, for two reasons: the CSP (§7) only allows same-origin and the
+MapLibre demo tile host, so a direct browser→Photon call is blocked outright
+in production; and routing it through the backend means the user's precise
+coordinates never leave the browser for a third party the user hasn't been
+told about.
+
+```mermaid
+sequenceDiagram
+    participant FE as Frontend (services/location.ts)
+    participant LC as locationRouter
+    participant LS as locationService
+    participant Photon as Photon (photon.komoot.io)
+
+    FE->>LC: GET /api/location?lat=..&lon=..
+    LC->>LC: validate lat/lon are finite numbers, within +-90/+-180
+    alt invalid coordinates
+        LC-->>FE: 400 {error}
+    else valid
+        LC->>LS: getLocation(lon, lat)
+        LS->>Photon: GET /reverse?lat=..&lon=..&lang=en
+        alt Photon responds 2xx
+            Photon-->>LS: GeoJSON FeatureCollection
+            LS-->>LC: FeatureCollection
+            LC-->>FE: 200 FeatureCollection
+        else Photon errors (rate limited, down, etc.)
+            Photon-->>LS: non-2xx
+            LS-->>LC: throws Error(status + statusText)
+            LC-->>FE: 500 (via the centralized errorHandler, §6)
+        end
+    end
+```
+
+No caching, no rate-limiting, and no API key — Photon's public instance is
+free but shared and best-effort, so a burst of traffic can return `503`s
+(observed in practice during development). This is the same class of risk
+GrapeMinds posed before the Redis-backed quota system in
+[`docs/adr.md`](../docs/adr.md) ADR-002 — worth revisiting the same way if
+usage here ever grows past casual/demo traffic.
+
 ## 6. Error Handling
 
 All routes funnel unexpected errors to `next(error)`, handled centrally by
@@ -542,7 +602,7 @@ issues are currently outstanding.
    — it reaches the full catalogue, not just whatever's cached for
    browsing. Full, unbounded pagination through GrapeMinds' ~2,650 real
    pages remains an explicit non-goal — see
-   [ADR-002](#adr-002-bound-catalogue-browsing-to-5-pages-instead-of-full-pagination).
+   [ADR-002](../docs/adr.md#adr-002-bound-catalogue-browsing-to-5-pages-instead-of-full-pagination).
 
 ### Medium
 
@@ -550,7 +610,7 @@ issues are currently outstanding.
    via `CREATE TABLE IF NOT EXISTS` in `utils/db.js#initDb()` on every
    startup. There is no versioned migration history and no rollback path —
    a destructive schema change today has no safety net. Decision on the
-   replacement tool: see [ADR-001](#adr-001-adopt-drizzle-orm-for-schema-migrations-and-query-building).
+   replacement tool: see [ADR-001](../docs/adr.md#adr-001-adopt-drizzle-orm-for-schema-migrations-and-query-building).
 
 4. **`express-rate-limit` is installed but unused.** `utils/middleware.js`
    still has hand-rolled, in-memory, per-process rate limiters instead.
@@ -582,9 +642,19 @@ issues are currently outstanding.
    hits the network. The grace-period approach is preferred — it fixes the
    race for any client, not just this frontend.
 
+6. **`GET /api/location` has no caching, no rate-limiting, and depends on
+   an unkeyed public API with no SLA** (§5.4). Photon's public instance
+   has already been observed returning `503`s during development — the
+   route has no fallback beyond surfacing the error to the frontend. Fine
+   at current traffic; see
+   [ADR-003](../docs/adr.md#adr-003-use-photon-for-reverse-geocoding-unkeyed-and-uncached)
+   for the tradeoff and the shape of the fix (a Redis cache keyed on
+   rounded coordinates, mirroring ADR-002's quota system) if this ever
+   needs to be more reliable.
+
 ## 9. Recommended Next Steps
 
-1. Adopt Drizzle ORM + `drizzle-kit` (see [ADR-001](#adr-001-adopt-drizzle-orm-for-schema-migrations-and-query-building))
+1. Adopt Drizzle ORM + `drizzle-kit` (see [ADR-001](../docs/adr.md#adr-001-adopt-drizzle-orm-for-schema-migrations-and-query-building))
    before the schema changes again; folding new `ALTER TABLE` statements
    into `initDb()` indefinitely does not scale.
 2. Finish the `express-validator` migration: convert `controllers/login.js`
@@ -598,114 +668,15 @@ issues are currently outstanding.
    Since the service layer is already fully migrated (§8), this is now a
    pure routing extraction with no business logic to move alongside it.
 4. If usage ever grows enough that 5 cached browsing pages + on-demand
-   search feels limiting, revisit [ADR-002](#adr-002-bound-catalogue-browsing-to-5-pages-instead-of-full-pagination)
+   search feels limiting, revisit [ADR-002](../docs/adr.md#adr-002-bound-catalogue-browsing-to-5-pages-instead-of-full-pagination)
    — e.g. a slow background job that persists a handful of new pages per
    day, well under the 250/month quota, rather than raising the bound
    naively.
 
 ## 10. Architecture Decision Records (ADRs)
 
-Short log of decisions that aren't obvious from reading the code alone —
-what was chosen, why, and what was given up. Format: Status / Context /
-Decision / Consequences / Alternatives considered.
-
-### ADR-001: Adopt Drizzle ORM for schema migrations and query building
-
-**Status:** Proposed (not yet implemented — tracks [Known Issue §8.3](#8-known-issues--technical-debt))
-
-**Context:** Data access is hand-written parameterized SQL via `pg`
-directly in `models/` (the repository layer, §2.3). Schema is created
-ad-hoc by `CREATE TABLE IF NOT EXISTS` in `utils/db.js#initDb()` on every
-boot — no versioned migrations, no rollback path. The backend is plain
-CommonJS JavaScript (no TypeScript), runs on Render's free tier (spins
-down after 15 min idle, ~30s cold-start wake per §Deployment), and talks to
-Neon serverless PostgreSQL.
-
-**Decision:** Introduce **Drizzle ORM** + **`drizzle-kit`** for schema
-definition, versioned migrations, and query building, replacing the
-hand-rolled SQL in `models/` incrementally (one table at a time —
-`users` first, then `my_wines`).
-
-**Why Drizzle over Prisma:**
-
-- **No separate query-engine process.** Drizzle is a thin, compiled
-  wrapper over the driver — it doesn't spin up an additional engine on
-  cold start. That matters concretely here: this project already pays a
-  cold-start tax on Render's free tier, so anything that adds engine
-  startup latency on top of that is a cost worth avoiding.
-- **First-class Neon HTTP driver** (`drizzle-orm/neon-http`) — a
-  fetch-based, stateless driver built specifically for serverless Postgres
-  like Neon, with no connection-pool warm-up needed after a cold start.
-- **Stays close to SQL.** The query builder mirrors the parameterized SQL
-  already written by hand in `models/`, so the repository layer becomes
-  typed and composable without being hidden behind a fully generated
-  client — smaller conceptual jump, and dropping to raw SQL for an
-  edge case stays easy.
-- **Closes Known Issue §8.3 directly** — `drizzle-kit` produces versioned,
-  diffable migration files with a rollback path, replacing the ad-hoc
-  `CREATE TABLE IF NOT EXISTS` startup logic.
-- **No TypeScript dependency.** Prisma's headline benefit — a generated,
-  fully-typed client — buys little in a plain-JS backend; Drizzle's
-  runtime-footprint advantage holds regardless of TS.
-
-**Consequences:**
-
-- Smaller ecosystem than Prisma: less Stack Overflow coverage, no
-  Prisma Studio-equivalent GUI out of the box, docs are good but younger.
-- `models/` gets rewritten file-by-file against Drizzle's query builder —
-  mechanical but not free; sequence it one table at a time rather than a
-  big-bang rewrite so `mywines`/`users` tests keep passing throughout.
-- The first `drizzle-kit` migration must snapshot the _current_ schema
-  before any new `ALTER TABLE` lands, or the migration history starts
-  from a false baseline.
-
-**Alternatives considered:**
-
-- **Prisma** — more mature tooling, generated client, Prisma Studio for
-  ad-hoc DB inspection. Rejected primarily for the added engine-layer
-  weight on a spin-down-prone free host; revisit if the backend adopts
-  TypeScript (where Prisma's generated types pay off more) or if admin/DB
-  inspection tooling becomes a real need.
-- **`node-pg-migrate`** — migrations only, no query builder; would have
-  closed §8.3 alone but left the hand-rolled SQL in `models/` untouched.
-  Rejected because it solves only half the problem this ADR addresses.
-
-### ADR-002: Bound catalogue browsing to 5 pages instead of full pagination
-
-**Status:** Implemented
-
-**Context:** GrapeMinds' real catalogue has ~264,700 wines across ~2,650 pages of 100 at
-`GET /wines?per_page=100&page=N`. The app's plan caps usage at **250 requests/month**. Browsing
-was originally hardcoded to `page=1` only (§8, resolved) — the naive fix would be to loop through
-every page and persist the whole catalogue, but that alone costs ~2,650 requests, more than 10x
-the entire monthly budget, in a single run.
-
-**Decision:** Clamp browsing server-side to pages **1–5** (`MAX_BROWSABLE_PAGES` in
-`wineService.js`), each cached under its own Redis key with a 60-day TTL. This bounds worst-case
-first-time cost to 5 requests total (then free until the cache expires), and bounds it
-_predictably_ — unlike search, where a user can type arbitrarily many distinct terms, "browsing"
-has a hard, known ceiling of 5 page-loads regardless of how many users click through it.
-
-**Why not full pagination:** Sequential pages share no cache-reuse advantage the way popular
-search terms do — every new page is a guaranteed cache miss the first time, and a single user
-clicking "next" through the catalogue could exhaust the entire month's quota alone (see the
-frontend's pagination UI, capped at 5 pages in lockstep with this server-side bound). Search
-(§5.2b) is the quota-efficient path to the rest of the catalogue — it proxies to GrapeMinds' own
-`/wines/search`, so a user reaches exactly the wines they're looking for at a cost of one request
-per distinct search term, not one per page of everything.
-
-**Consequences:**
-
-- Only 500 of ~264,700 wines are ever browsable via the paginated table; the rest are reachable
-  only through search. This is a deliberate product tradeoff, not an oversight.
-- If traffic ever justifies more browsable depth, the fix is a slow, budget-aware background
-  expansion (e.g. 1-2 new pages/day) rather than raising `MAX_BROWSABLE_PAGES` outright — see
-  [§9 Recommended Next Steps](#9-recommended-next-steps).
-
-**Alternatives considered:**
-
-- **Full pagination (all ~2,650 pages)** — rejected outright; costs more than 10x the monthly
-  quota to populate once, before counting search or wine-detail traffic.
-- **Persisting the catalogue to PostgreSQL instead of Redis-only** — would remove the "TTL expiry
-  forces a repeat paid call" risk, and is worth revisiting if catalogue depth becomes a real
-  product requirement, but wasn't necessary to fix the immediate page-1-only bug.
+Architecture decisions for this project (both `back/` and `front/`) are
+logged centrally in **[`docs/adr.md`](../docs/adr.md)**, not in this file —
+see that file for the two current entries (**ADR-001**: Drizzle ORM
+adoption; **ADR-002**: the 5-page catalogue browsing cap) and for the
+process/format to follow when adding a new one.

@@ -7,8 +7,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 This directory (`back/`) is the backend of a two-package monorepo rooted one
 level up (`KnowWine-AI/`, sibling `front/` = React/TypeScript/Vite SPA). The
 git repository root is `KnowWine-AI/`, not `back/` — `git status`/`git diff`
-from here will show `../front/...` paths too. There is no root-level
-`CLAUDE.md`; this file only covers the backend.
+from here will show `../front/...` paths too. See the root
+[`CLAUDE.md`](../CLAUDE.md) for repo-wide conventions; this file only covers
+the backend.
 
 **`back/README.md` is the canonical architecture document** — request
 lifecycle, all four domain sequence diagrams (login, wine browsing, wine
@@ -87,7 +88,8 @@ Redis and GrapeMinds calls are skipped entirely outside `NODE_ENV=production`
   to Redis or GrapeMinds in dev/test. In production it proxies to the
   GrapeMinds API through Redis-cached lookups, with catalogue _browsing_
   hard-clamped server-side to pages 1–5 (`MAX_BROWSABLE_PAGES`) and a
-  250-request/month quota tracked in Redis — see ADR-002 in the README
+  250-request/month quota tracked in Redis — see
+  [ADR-002](../docs/adr.md#adr-002-bound-catalogue-browsing-to-5-pages-instead-of-full-pagination)
   before changing that bound; it's a deliberate quota-safety cap, not an
   oversight.
 - All unexpected errors funnel through `next(error)` to the centralized
@@ -107,3 +109,4 @@ Redis and GrapeMinds calls are skipped entirely outside `NODE_ENV=production`
   checks (`Number(req.params.id)` + `Number.isNaN`) instead — known
   inconsistency tracked in the README's Known Issues, not a pattern to copy
   into new code.
+- Add tests for new API endpoints.
