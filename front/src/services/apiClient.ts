@@ -2,6 +2,11 @@
 //Miksi: Axios-instanssiin voi liittää interceptoreita (pyyntö-/vastauskoukkuja), jotka ajetaan jokaiselle sen instanssin kautta kulkevalle pyynnölle automaattisesti. Jos tämä logiikka on yhdessä paikassa, jokainen palvelu saa refresh-käytöksen ilmaiseksi eikä sitä tarvitse kirjoittaa uudelleen myWines.ts:ään, users.ts:ään jne.
 import axios from 'axios';
 
+// Ensure cookies (httpOnly refresh token) are sent/accepted on cross-site requests
+// (production backend and frontend may be on different origins). This makes
+// axios include credentials for XHR requests by default.
+axios.defaults.withCredentials = true;
+
 let accessToken: string | null = null;
 
 const setAccessToken = (token: string | null) => {
@@ -35,7 +40,7 @@ apiClient.interceptors.response.use(
 );
 
 const refreshAccessToken = async (): Promise<{ token: string; username: string; name: string; id: number }> => {
-  const response = await axios.post<{ token: string; username: string; name: string; id: number }>('/api/login/refresh');
+  const response = await axios.post<{ token: string; username: string; name: string; id: number }>('/api/login/refresh', undefined, { withCredentials: true });
   const token = response.data.token;
   setAccessToken(token);
   return response.data as { token: string; username: string; name: string; id: number };
