@@ -19,17 +19,17 @@ npm run dev       # starts the app at http://localhost:5173
 
 ## Scripts
 
-| Command | Description |
-|---|---|
-| `npm run dev` | Start the Vite dev server |
-| `npm run build` | Type-check (`tsc -b`) and build for production |
-| `npm run preview` | Preview the production build locally |
-| `npm run test` | Run unit/component tests (Vitest) |
-| `npm run test:e2e` | Run end-to-end tests (Playwright) |
-| `npm run test:report` | Open the last Playwright HTML report |
-| `npm run lint` | Lint with ESLint |
-| `npm run format` | Format with Prettier |
-| `npm run format:check` | Check formatting without writing |
+| Command                | Description                                    |
+| ---------------------- | ---------------------------------------------- |
+| `npm run dev`          | Start the Vite dev server                      |
+| `npm run build`        | Type-check (`tsc -b`) and build for production |
+| `npm run preview`      | Preview the production build locally           |
+| `npm run test`         | Run unit/component tests (Vitest)              |
+| `npm run test:e2e`     | Run end-to-end tests (Playwright)              |
+| `npm run test:report`  | Open the last Playwright HTML report           |
+| `npm run lint`         | Lint with ESLint                               |
+| `npm run format`       | Format with Prettier                           |
+| `npm run format:check` | Check formatting without writing               |
 
 ## Tech stack
 
@@ -53,11 +53,11 @@ pattern:
 - a **`useXContext()`** accessor reads the context and throws if called outside its provider,
   so misuse fails immediately instead of surfacing as a confusing `undefined`
 
-| Context | Hook | Owns |
-|---|---|---|
-| `AuthContext` | `useAuth` | Logged-in `user`, `login`/`logout`, persists the session to `localStorage` |
-| `NotificationContext` | `useNotifications` | The current toast message shown by `<Notification>` |
-| `MyWinesContext` | `useMyWines` | The signed-in user's saved wines, plus `addWine`/`deleteWine` |
+| Context               | Hook               | Owns                                                                       |
+| --------------------- | ------------------ | -------------------------------------------------------------------------- |
+| `AuthContext`         | `useAuth`          | Logged-in `user`, `login`/`logout`, persists the session to `localStorage` |
+| `NotificationContext` | `useNotifications` | The current toast message shown by `<Notification>`                        |
+| `MyWinesContext`      | `useMyWines`       | The signed-in user's saved wines, plus `addWine`/`deleteWine`              |
 
 `AuthProvider` and `NotificationProvider` are mounted once in `main.tsx`, wrapping `<App />`.
 `MyWinesProvider` is mounted lower, in `PrivateRoute.tsx`, since only the signed-in routes it

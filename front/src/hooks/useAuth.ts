@@ -7,6 +7,7 @@ type User = {
   id: number;
   name: string;
   username: string;
+  role: string;
 };
 
 export const useAuth = () => {
@@ -19,8 +20,7 @@ export const useAuth = () => {
     apiClient
       .getRefreshedToken()
       .then((data) => {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setUser({ id: data.id, name: data.name, username: data.username });
+        setUser({ id: data.id, name: data.name, username: data.username, role: data.role });
       })
       // no valid refresh-cookie — not logged in, no error, just no user
       .catch(() => {})

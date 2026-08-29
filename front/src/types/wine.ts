@@ -25,7 +25,7 @@ export type MyWine = {
 export type WineListProps = {
   wineList: Wine[];
   isLoading?: boolean;
-}
+};
 
 export type WineSearchResult = {
   id: number;
@@ -34,4 +34,3 @@ export type WineSearchResult = {
   color: string;
   producer_name: string;
 };
-

@@ -14,7 +14,7 @@ import LoginForm from './pages/LoginForm';
 import WineList from './pages/WineList';
 import MyWines from './pages/MyWines';
 import MyWineForm from './pages/MyWineForm';
-
+import Users from './pages/Users';
 
 const App = () => {
   return (
@@ -25,13 +25,14 @@ const App = () => {
         <Notification />
         <Routes>
           <Route element={<PrivateRoute redirectPath="/login" />}>
-            <Route path="/addwine" element={<MyWineForm  />} />
+            <Route path="/addwine" element={<MyWineForm />} />
             <Route path="/mywines" element={<MyWines />} />
             <Route path="/mywines/:id" element={<MyWine />} />
+            <Route path="/users" element={<Users />} />
           </Route>
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<LoginForm />} />
-          <Route path="/wines" element={<WineList/>}/>
+          <Route path="/wines" element={<WineList />} />
           <Route path="/wines/:id" element={<WineDetail />} />
         </Routes>
       </Container>

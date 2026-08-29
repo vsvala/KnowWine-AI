@@ -27,6 +27,11 @@ const NavBar = () => {
             Add Wine
           </Button>
         ) : null}
+       {user?.role === 'admin' ? (
+          <Button color="inherit" component={Link} to="/users" sx={style}>
+            Users
+          </Button>
+        ) : null}
 
         {user ? (
           <button onClick={logout}>Log out ({user.name})</button>

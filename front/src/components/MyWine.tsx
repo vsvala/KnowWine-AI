@@ -1,11 +1,10 @@
 import { useNavigate, useParams } from 'react-router-dom';
 import { useMyWinesContext } from '../context/MyWinesContext';
 
-
 const MyWine = () => {
   const { deleteWine, myWines, isLoading } = useMyWinesContext();
   const { id } = useParams();
-    //const id = Number(useParams().id);
+  //const id = Number(useParams().id);
   const wine = myWines.find((w) => w.id === Number(id));
   const navigate = useNavigate();
 
@@ -14,7 +13,7 @@ const MyWine = () => {
 
   const handleDelete = () => {
     if (window.confirm(`Delete wine "${wine?.name}"?`)) {
-     deleteWine(wine.id).then((success) => {
+      deleteWine(wine.id).then((success) => {
         if (success) navigate('/mywines');
       });
     }

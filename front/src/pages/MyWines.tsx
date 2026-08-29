@@ -1,16 +1,16 @@
 import { Link } from 'react-router-dom';
 import { useMyWinesContext } from '../context/MyWinesContext';
 import SearchList from '../components/common/SearchList';
-import type { MyWine} from '../types/wine';
+import type { MyWine } from '../types/wine';
 import { useMyWineSearch } from '../hooks/useMyWineSearch';
 //import { useAuthContext } from '../context/AuthContext';
 
 const MyWines = () => {
   //const [users, setUsers] = useState<User[]>([]);
   // const [user, setUser] = useState('');
-   // const { user } = useAuthContext();
-   // console.log(user)
-  
+  // const { user } = useAuthContext();
+  // console.log(user)
+
   const { myWines } = useMyWinesContext();
   const { searchTerm, setSearchTerm, searchResults } = useMyWineSearch();
 
@@ -46,7 +46,7 @@ const MyWines = () => {
 
   return (
     <div>
-        <SearchList<MyWine>
+      <SearchList<MyWine>
         searchTerm={searchTerm}
         onSearchTermChange={setSearchTerm}
         results={searchResults}

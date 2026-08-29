@@ -6,4 +6,4 @@ const getLocation = async (coords: [number, number]) => {
   return request.data;
 };
 
-export default { getLocation};
+export default { getLocation };

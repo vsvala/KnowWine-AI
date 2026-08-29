@@ -2,10 +2,9 @@ import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import wineListService from '../services/wineList';
 
-
 const WineDetail = () => {
-const { id } = useParams();
-const {data: wine, isLoading } = useQuery({
+  const { id } = useParams();
+  const { data: wine, isLoading } = useQuery({
     queryKey: ['wines', id],
     queryFn: () => wineListService.getById(Number(id)),
   });

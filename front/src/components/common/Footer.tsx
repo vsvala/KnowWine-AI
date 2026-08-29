@@ -11,7 +11,6 @@ const Footer = () => {
       <p>
         {' '}
         <em>{new Date().getFullYear()}</em>
-   
       </p>
       <br />
     </div>

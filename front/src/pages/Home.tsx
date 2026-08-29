@@ -67,7 +67,9 @@ const Home = () => {
       Welcome to know wine site... Here you can ..
       <div ref={mapContainer} style={{ width: '100%', height: '500px' }} />
       {coords && place ? (
-        <p>{place.city}, {place.country}</p>
+        <p>
+          {place.city}, {place.country}
+        </p>
       ) : (geoError ?? placeError) ? (
         <p>{geoError ?? placeError}</p>
       ) : null}

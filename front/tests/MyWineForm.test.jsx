@@ -17,7 +17,7 @@ test('<MyWineForm /> updates parent state and calls onSubmit', async () => {
     name: 'testing a form name..',
     description: 'testing a form description.',
   });
-  
+
   const user = userEvent.setup();
 
   render(

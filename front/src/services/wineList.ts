@@ -23,6 +23,8 @@ const searchAll = (term: string) => {
 const getById = (id: number) => axios.get(`${baseUrl}/${id}`).then((r) => r.data);
 
 export default {
-  getAll, searchAll, getById
+  getAll,
+  searchAll,
+  getById,
   //setToken
 };

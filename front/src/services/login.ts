@@ -11,4 +11,3 @@ const logout = async () => {
 };
 
 export default { login, logout };
-

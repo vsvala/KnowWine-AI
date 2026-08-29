@@ -2,7 +2,6 @@ import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import { sentryVitePlugin } from '@sentry/vite-plugin';
 
-
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [

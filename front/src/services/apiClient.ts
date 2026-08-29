@@ -27,8 +27,8 @@ apiClient.interceptors.response.use(
     if (error.response?.status === 401 && !original._retry) {
       original._retry = true;
       try {
-    const { token } = await getRefreshedToken();
-    original.headers.Authorization = `Bearer ${token}`;
+        const { token } = await getRefreshedToken();
+        original.headers.Authorization = `Bearer ${token}`;
         return apiClient(original);
       } catch (refreshError) {
         onAuthExpired?.();
@@ -39,13 +39,31 @@ apiClient.interceptors.response.use(
   }
 );
 
-const refreshAccessToken = async (): Promise<{ token: string; username: string; name: string; id: number }> => {
-  const response = await axios.post<{ token: string; username: string; name: string; id: number }>('/api/login/refresh', undefined, { withCredentials: true });
+const refreshAccessToken = async (): Promise<{
+  token: string;
+  username: string;
+  name: string;
+  id: number;
+  role: string;
+}> => {
+  const response = await axios.post<{
+    token: string;
+    username: string;
+    name: string;
+    id: number;
+    role: string;
+  }>('/api/login/refresh', undefined, { withCredentials: true });
   const token = response.data.token;
   setAccessToken(token);
-  return response.data as { token: string; username: string; name: string; id: number };
+  return response.data;
 };
-let refreshPromise: Promise<{ token: string; username: string; name: string; id: number }> | null = null;
+let refreshPromise: Promise<{
+  token: string;
+  username: string;
+  name: string;
+  id: number;
+  role: string;
+}> | null = null;
 
 // Dedupe concurrent refresh calls: if multiple requests 401 at once (e.g. React StrictMode's
 // double effect run), they'd otherwise each trigger their own /refresh call. Caching the
@@ -64,4 +82,10 @@ const setOnAuthExpired = (callback: () => void) => {
   onAuthExpired = callback;
 };
 
-export default { apiClient, getRefreshedToken,refreshAccessToken, setAccessToken, setOnAuthExpired };
+export default {
+  apiClient,
+  getRefreshedToken,
+  refreshAccessToken,
+  setAccessToken,
+  setOnAuthExpired,
+};

@@ -14,7 +14,6 @@ import { useWineSearch } from '../hooks/useWineSearch';
 import type { WineSearchResult } from '../types/wine';
 import { useWineList } from '../hooks/useWineList';
 
-
 const MAX_BROWSABLE_PAGES = 5;
 
 const WineList = () => {
@@ -22,7 +21,7 @@ const WineList = () => {
   const { wineList, isLoading, page, setPage } = useWineList();
 
   return (
-    <div>  
+    <div>
       <SearchList<WineSearchResult>
         searchTerm={searchTerm}
         onSearchTermChange={setSearchTerm}
@@ -33,7 +32,7 @@ const WineList = () => {
         itemHref={(wine) => `/wines/${wine.id}`}
         itemLabel={(wine) => wine.display_name}
       />
-    
+
       <div className="search-container">
         <h2>Wines</h2>
         {isLoading ? (
