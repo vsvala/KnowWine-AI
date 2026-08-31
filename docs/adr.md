@@ -188,3 +188,58 @@ flow and `front/docs/ARCHITECTURE.md` §12 for the client side.
   API-key/paid-tier setup cost relative to a single low-traffic feature;
   worth revisiting if reverse geocoding becomes more central to the app
   (e.g. tagging saved wines by region) rather than a landing-page detail.
+
+## ADR-004: Role-based access control for user management
+
+**Status:** Implemented
+
+**Context:** `GET /api/users` originally required no authentication at all —
+any caller could list every user. `DELETE /api/users/:id` only checked that
+the caller _was_ the target user, so account deletion was self-service only,
+with no way for anyone to manage another account. Adding a `/users` page to
+the frontend (an admin-facing user list) needed a real notion of "who is
+allowed to see/manage everyone," which didn't exist yet.
+
+**Decision:** Add a `role` column to `users` (`'member'` default, or
+`'admin'`), and gate `GET /api/users` (list), `POST /api/users/:id/role`
+(promote/demote), and `DELETE /api/users/:id` to admins only;
+`GET /api/users/:id` allows an admin or the user viewing their own profile.
+Every check re-fetches the caller's `role` from the database through the
+existing `authenticate` middleware (back/README.md §5.1) — the same
+"never trust the JWT payload for authorization" pattern already used
+elsewhere — rather than embedding `role` in the token. `role` is also
+returned in the login/refresh response body so the frontend can decide what
+to render (e.g. hide the "Users" nav link from non-admins), but that check
+is a UX convenience only; the backend enforces the same rule independently
+of what the client believes. See back/README.md
+[§5.5](../back/README.md#55-user-management--roles-apiusers) for the full
+route table.
+
+**Consequences:**
+
+- A role change takes effect on the affected user's very next request —
+  no token re-issue or forced re-login needed, since role is never read
+  from the JWT.
+- No bootstrap mechanism exists for the _first_ admin: every account
+  defaults to `'member'`, and only an existing admin can promote another
+  user via `POST /:id/role`. On a fresh database this is a chicken-and-egg
+  problem, currently resolved only by setting the first admin's `role`
+  directly in PostgreSQL — see
+  [back/README.md Known Issues §8.7](../back/README.md#8-known-issues--technical-debt).
+- Each admin-only route inlines its own `role === 'admin'` check rather
+  than sharing a `requireAdmin` middleware — fine at the current three
+  routes, but worth factoring out if more admin-only endpoints are added.
+
+**Alternatives considered:**
+
+- **Embed `role` in the JWT payload** — rejected: would mean a role change
+  (especially a demotion) doesn't take effect until the access token
+  expires (up to 15 minutes) or the user re-logs in, and it breaks the
+  project's existing rule that the JWT is trusted for identity only, never
+  for authorization (back/README.md §5.1).
+- **A boolean `is_admin` column instead of a `role` string** — rejected: a
+  boolean forecloses a future third tier (e.g. "moderator") for no real
+  savings today. A plain `TEXT` column with an application-level allowlist
+  (`['member', 'admin']`) was also simpler to add via
+  `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` than a Postgres `ENUM` type,
+  which needs its own migration to extend later.

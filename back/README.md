@@ -31,7 +31,7 @@ flowchart TB
         RMyWines["/api/mywines"]
         RWines["/api/wines"]
         RLocation["/api/location"]
-        Auth["authenticate middleware\n(per-route: mywines GET '/' + POST + DELETE,\nusers DELETE)"]
+        Auth["authenticate middleware\n(per-route: mywines GET '/' + POST + DELETE,\nusers GET '/' + GET '/:id' + POST '/:id/role' + DELETE)"]
         ErrH["errorHandler (centralized)"]
     end
 
@@ -396,10 +396,13 @@ from two tabs).
 token by its hash and clears the cookie; it does not touch other sessions
 for the same user.
 
-Downstream routes (`/api/mywines` POST/DELETE, `/api/users` DELETE) verify
-the access token with `jwt.verify` and re-fetch the user from the database
-on every request — the token carries only `{ username, id }`, it is not
-trusted for authorization decisions beyond identifying the user.
+Downstream routes (`/api/mywines` POST/DELETE, `/api/users` GET/DELETE/role
+changes) verify the access token with `jwt.verify` and re-fetch the user
+from the database on every request — the token carries only
+`{ username, id }`, it is never itself trusted for authorization. Where a
+route needs more than identity (e.g. the admin-only `/api/users` routes,
+§5.5), it checks the freshly re-fetched user's `role` column, not anything
+carried in the token.
 
 ### 5.2 Wine catalogue — browsing (`GET /api/wines`)
 
@@ -540,6 +543,36 @@ GrapeMinds posed before the Redis-backed quota system in
 [`docs/adr.md`](../docs/adr.md) ADR-002 — worth revisiting the same way if
 usage here ever grows past casual/demo traffic.
 
+### 5.5 User management & roles (`/api/users`)
+
+Every user has a `role` column — `'member'` (default) or `'admin'` — added
+via an idempotent `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` in
+`utils/db.js#initDb()` so existing rows backfill to `'member'` automatically.
+See [ADR-004](../docs/adr.md#adr-004-role-based-access-control-for-user-management)
+for why this shape was chosen over embedding role in the JWT or a boolean
+`is_admin` flag.
+
+| Route                      | Who may call it                               |
+| -------------------------- | --------------------------------------------- |
+| `GET /api/users`           | Admins only — lists every user                |
+| `GET /api/users/:id`       | Admins, or the user viewing their own profile |
+| `POST /api/users`          | Public — account creation (signup)            |
+| `POST /api/users/:id/role` | Admins only — promote/demote a user's role    |
+| `DELETE /api/users/:id`    | Admins only                                   |
+
+All admin checks re-fetch the caller's `role` from the database via the
+shared `authenticate` middleware (§5.1) rather than trusting anything in the
+JWT — a role change (or demotion) takes effect on the caller's very next
+request, with no need to wait out the access token's TTL or force a
+re-login. `role` is also returned in the login/refresh response body
+(§5.1) purely so the frontend can decide what to render (e.g. NavBar's
+"Users" link) — the frontend's own check is a UX convenience only; every
+admin-only route still enforces the same check server-side regardless of
+what the client believes.
+
+There is currently no self-serve or seeded path to create the _first_
+admin — see [Known Issues §8](#8-known-issues--technical-debt).
+
 ## 6. Error Handling
 
 All routes funnel unexpected errors to `next(error)`, handled centrally by
@@ -580,6 +613,9 @@ All routes funnel unexpected errors to `next(error)`, handled centrally by
   module-level JS variable, not `localStorage`/`sessionStorage` — an XSS
   payload that can run JS can still steal it for its 15-minute lifetime, but
   it can't read it out of storage after the fact or across page reloads.
+- **Role-based authorization for `/api/users`** (§5.5): admin-only routes
+  check the caller's `role`, re-fetched from the database on every request,
+  never the JWT payload — see [ADR-004](../docs/adr.md#adr-004-role-based-access-control-for-user-management).
 
 ## 8. Known Issues & Technical Debt
 
@@ -652,6 +688,15 @@ issues are currently outstanding.
    rounded coordinates, mirroring ADR-002's quota system) if this ever
    needs to be more reliable.
 
+7. **No bootstrap path for the first admin user** (§5.5). Every account
+   defaults to `role = 'member'` on creation, and promoting a user to
+   `'admin'` requires calling `POST /api/users/:id/role` as an existing
+   admin — a chicken-and-egg problem on a fresh database, currently
+   resolved only by setting the first admin's `role` directly in
+   PostgreSQL. Worth a deliberate decision (a one-time seed script, an
+   env-var-gated bootstrap route, or documenting the manual `UPDATE`) if
+   this project ever needs a repeatable deploy story.
+
 ## 9. Recommended Next Steps
 
 1. Adopt Drizzle ORM + `drizzle-kit` (see [ADR-001](../docs/adr.md#adr-001-adopt-drizzle-orm-for-schema-migrations-and-query-building))
@@ -677,6 +722,7 @@ issues are currently outstanding.
 
 Architecture decisions for this project (both `back/` and `front/`) are
 logged centrally in **[`docs/adr.md`](../docs/adr.md)**, not in this file —
-see that file for the two current entries (**ADR-001**: Drizzle ORM
-adoption; **ADR-002**: the 5-page catalogue browsing cap) and for the
-process/format to follow when adding a new one.
+see that file for the current entries (**ADR-001**: Drizzle ORM adoption;
+**ADR-002**: the 5-page catalogue browsing cap; **ADR-003**: Photon for
+reverse geocoding; **ADR-004**: role-based access control for user
+management) and for the process/format to follow when adding a new one.

@@ -90,7 +90,7 @@ graph TD
     Router --> AuthProvider
     AuthProvider --> NotificationProvider
     NotificationProvider --> App["App.tsx (nav + routes)"]
-    App --> PrivateRoute["PrivateRoute\n(wraps only /addwine, /mywines, /mywines/:id)"]
+    App --> PrivateRoute["PrivateRoute\n(wraps /addwine, /mywines, /mywines/:id, /users)"]
     PrivateRoute --> MyWinesProvider
 
     AuthProvider -.wraps.-> useAuth["useAuth()"]
@@ -119,16 +119,25 @@ graph LR
         AddWine["/addwine"]
         MyWines["/mywines"]
         MyWineDetail["/mywines/:id"]
+        Users["/users"]
     end
     PrivateRoute{{"PrivateRoute\n(user ? Outlet : redirect /login)"}}
     PrivateRoute --> AddWine
     PrivateRoute --> MyWines
     PrivateRoute --> MyWineDetail
+    PrivateRoute --> Users
 ```
 
 `PrivateRoute` (`components/PrivateRoute.tsx`) is a layout route: it renders
 `<Outlet />` when `user` is truthy, otherwise it redirects. `App.tsx` reads `user` from
 `useAuthContext()` and passes it in, and also toggles which nav buttons are shown.
+
+`/users` is a further special case: `PrivateRoute` only checks that _someone_ is
+logged in, not their role, so `pages/Users.tsx` fetches the list itself and, on a
+`403` from the admin-only `GET /api/users` (back/README.md §5.5), redirects to `/`
+instead of rendering an empty page. `NavBar` also only shows the "Users" nav link
+when `user.role === 'admin'`. Both checks are UX conveniences — the real
+enforcement is server-side, re-checked on every request (back/README.md §5.5).
 
 ## 5. Data flow (Component → Context → Hook → Service → API)
 
@@ -226,6 +235,7 @@ now fixed: `getAll` sends the token, and `useMyWines`'s fetch effect is gated on
 | `pages/WineList.tsx`                 | Submit-triggered catalogue search (`useWineSearch`, §11) via `SearchList` + paginated MUI table (`useWineList`, pages 1-5) over the wine catalogue (`/wines`)                               | `wineList`, `isLoading`, `page`                                        |
 | `pages/MyWines.tsx`                  | Live in-memory search (`useMyWineSearch`) via `SearchList` + list over the signed-in user's saved wines (`/mywines`)                                                                        | —                                                                      |
 | `pages/MyWineForm.tsx`               | Form to add a wine to "my wines" (`/addwine`)                                                                                                                                               | `addWine`                                                              |
+| `pages/Users.tsx`                    | Admin-only user list (`/users`) — redirects to `/` on a `403` from `GET /api/users` (see §4)                                                                                                | —                                                                      |
 | `components/MyWine.tsx`              | Single saved-wine detail row + delete button (route target for `/mywines/:id`)                                                                                                              | `wine`, `id`                                                           |
 | `components/WineCard.tsx`            | Compact table row for one catalogue wine, links to its detail page                                                                                                                          | `wine`                                                                 |
 | `components/WineDetail.tsx`          | Full single-wine detail view (route target for `/wines/:id`) — fetches its own data by id via `GET /api/wines/:id`, shows type, subtype, color, residual sugar, producer, region            | — (reads `id` from the route)                                          |
