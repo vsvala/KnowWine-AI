@@ -26,7 +26,14 @@ const loginUser = async (username, password) => {
   const expiresAt = new Date(Date.now() + REFRESH_TOKEN_TTL * 1000);
   await refreshTokenModel.create(user.id, tokenHash, expiresAt);
 
-  return { token, refreshToken, username: user.username, name: user.name, id: user.id };
+  return {
+    token,
+    refreshToken,
+    username: user.username,
+    name: user.name,
+    id: user.id,
+    role: user.role,
+  };
 };
 const refreshAccessToken = async (rawRefreshToken) => {
   if (!rawRefreshToken) {
@@ -55,7 +62,14 @@ const refreshAccessToken = async (rawRefreshToken) => {
   await refreshTokenModel.create(decoded.id, newHash, expiresAt);
 
   const user = await userModel.getById(decoded.id);
-  return { token, refreshToken, username: user.username, name: user.name, id: user.id };
+  return {
+    token,
+    refreshToken,
+    username: user.username,
+    name: user.name,
+    id: user.id,
+    role: user.role,
+  };
 };
 const logoutUser = async (rawRefreshToken) => {
   if (!rawRefreshToken) return;

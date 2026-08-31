@@ -16,14 +16,23 @@ const winesInDb = async () => {
 };
 
 const initialUsers = [
-  { name: 'Pekka', username: 'Peke', password_hash: passwordHash },
-  { name: 'Jaska', username: 'Joku', password_hash: passwordHash },
+  { name: 'Pekka', username: 'Peke', role: 'member', password_hash: passwordHash },
+  { name: 'Jaska', username: 'Joku', role: 'member', password_hash: passwordHash },
 ];
 
+// Admin-gated routes (GET /api/users, DELETE /api/users/:id, POST
+// /api/users/:id/role) need a caller with role='admin' — kept separate from
+// initialUsers since most tests want ordinary members seeded by default.
+const initialAdmin = {
+  name: 'Admin',
+  username: 'AdminUser',
+  role: 'admin',
+  password_hash: passwordHash,
+};
+
 const usersInDb = async () => {
-  const result = await pool.query('SELECT id, name, username FROM users ORDER BY id');
+  const result = await pool.query('SELECT id, name, username, role FROM users ORDER BY id');
   return result.rows;
 };
-//(`INSERT INTO users(name, username, password_hash) VALUES ('Mina','Mina','test') RETURNING id, name, username
 
-module.exports = { initialWines, winesInDb, initialUsers, usersInDb };
+module.exports = { initialWines, winesInDb, initialUsers, initialAdmin, usersInDb };

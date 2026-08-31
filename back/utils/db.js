@@ -44,6 +44,10 @@ const initDb = async () => {
     CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user_id ON refresh_tokens(user_id);
 
   `);
+  // Ensure `role` column exists on users with a safe default of 'member'
+  await pool.query(`
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'member';
+  `);
   await pool.query(`
     DO $$ BEGIN
       ALTER TABLE my_wines ADD CONSTRAINT my_wines_name_key UNIQUE (name);

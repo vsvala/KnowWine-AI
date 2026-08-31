@@ -25,6 +25,15 @@ const createUser = async (name, username, password) => {
   }
 };
 
+const setUserRole = async (id, role) => {
+  const allowed = ['member', 'admin'];
+  if (!allowed.includes(role)) throw new Error('INVALID_ROLE');
+  const user = await userModel.getById(id);
+  if (!user) throw new Error('USER_NOT_FOUND');
+  await userModel.setRole(id, role);
+  return await userModel.getById(id);
+};
+
 const deleteUserById = async (id) => {
   const user = await userModel.getById(id);
   if (!user) {
@@ -33,4 +42,4 @@ const deleteUserById = async (id) => {
   await userModel.deleteById(id);
 };
 
-module.exports = { getAllUsers, getUserById, deleteUserById, createUser };
+module.exports = { getAllUsers, getUserById, deleteUserById, createUser, setUserRole };

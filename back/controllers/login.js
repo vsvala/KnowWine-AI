@@ -18,9 +18,13 @@ loginRouter.post('/', async (req, res, next) => {
     const result = await loginService.loginUser(username, password);
 
     setRefreshCookie(res, result.refreshToken);
-    res
-      .status(200)
-      .json({ token: result.token, username: result.username, name: result.name, id: result.id });
+    res.status(200).json({
+      token: result.token,
+      username: result.username,
+      name: result.name,
+      id: result.id,
+      role: result.role,
+    });
   } catch (error) {
     if (error.message === 'INVALID_CREDENTIALS') {
       return res.status(401).json({ error: 'invalid username or password' });

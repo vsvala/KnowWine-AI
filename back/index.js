@@ -4,7 +4,10 @@ const { PORT } = require('./utils/config');
 const { connectToDatabase } = require('./utils/db');
 
 const start = async () => {
-  if (!process.env.SECRET) throw new Error('SECRET environment variable is required');
+  const missing = [];
+  if (!process.env.SECRET) missing.push('SECRET');
+  if (!process.env.REFRESH_TOKEN_SECRET) missing.push('REFRESH_TOKEN_SECRET');
+  if (missing.length) throw new Error(`Missing required env var(s): ${missing.join(', ')}`);
 
   try {
     await connectToDatabase();

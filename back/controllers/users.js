@@ -26,8 +26,11 @@ const createUserValidation = [
     .withMessage('password must be 8-2000 characters'),
 ];
 
-usersRouter.get('/', async (req, res, next) => {
+usersRouter.get('/', authenticate, async (req, res, next) => {
   try {
+    if (!(req.user.role === 'admin')) {
+      return res.status(403).json({ error: 'forbidden' });
+    }
     const result = await userService.getAllUsers();
     res.json(result);
   } catch (error) {
@@ -35,9 +38,13 @@ usersRouter.get('/', async (req, res, next) => {
   }
 });
 
-usersRouter.get('/:id', async (req, res, next) => {
+usersRouter.get('/:id', authenticate, async (req, res, next) => {
   const id = Number(req.params.id);
   try {
+    const requester = req.user; // authenticate asettaa tämän
+    if (!(requester.role === 'admin' || requester.id === id)) {
+      return res.status(403).json({ error: 'forbidden' });
+    }
     if (Number.isNaN(id)) {
       return res.status(400).json({ error: 'Invalid ID' });
     }
@@ -68,9 +75,33 @@ usersRouter.post('/', createUserValidation, handleValidationErrors, async (req, 
   }
 });
 
-//TODO check if' logged admin
+// Promote/demote a user role. Only admins may change roles.
+usersRouter.post('/:id/role', authenticate, async (req, res, next) => {
+  try {
+    const requester = req.user;
+    if (!requester || requester.role !== 'admin') {
+      return res.status(403).json({ error: 'admin only' });
+    }
+    const id = Number(req.params.id);
+    const { role } = req.body;
+    if (Number.isNaN(id)) return res.status(400).json({ error: 'Invalid ID' });
+    if (!['member', 'admin'].includes(role)) return res.status(400).json({ error: 'Invalid role' });
+    const updated = await userService.setUserRole(id, role);
+    res.json(updated);
+  } catch (error) {
+    if (error.message === 'USER_NOT_FOUND')
+      return res.status(404).json({ error: 'User not found' });
+    if (error.message === 'INVALID_ROLE') return res.status(400).json({ error: 'Invalid role' });
+    next(error);
+  }
+});
+
 usersRouter.delete('/:id', authenticate, async (req, res, next) => {
   const id = Number(req.params.id);
+  const requester = req.user; // // || requester.id === id
+  if (!(requester.role === 'admin')) {
+    return res.status(403).json({ error: 'forbidden' });
+  }
   try {
     if (Number.isNaN(id)) {
       return res.status(400).json({ error: 'Invalid ID' });
