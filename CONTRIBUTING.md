@@ -21,17 +21,17 @@ Esimerkkejä:
 ## Type
 
 | Type       | Käyttö                                     |
-| ---------- | ------------------------------------------- |
-| `feat`     | uusi toiminnallisuus                        |
-| `fix`      | bugikorjaus                                 |
-| `refactor` | koodin rakenne muuttuu, toiminnallisuus ei  |
-| `test`     | testejä                                     |
-| `docs`     | dokumentaatio                               |
-| `perf`     | suorituskykyparannus                        |
-| `chore`    | ylläpito, riippuvuudet, config              |
-| `build`    | build-järjestelmä                           |
-| `ci`       | CI/CD                                       |
-| `style`    | formatointi, ei toiminnallista muutosta     |
+| ---------- | ------------------------------------------ |
+| `feat`     | uusi toiminnallisuus                       |
+| `fix`      | bugikorjaus                                |
+| `refactor` | koodin rakenne muuttuu, toiminnallisuus ei |
+| `test`     | testejä                                    |
+| `docs`     | dokumentaatio                              |
+| `perf`     | suorituskykyparannus                       |
+| `chore`    | ylläpito, riippuvuudet, config             |
+| `build`    | build-järjestelmä                          |
+| `ci`       | CI/CD                                      |
+| `style`    | formatointi, ei toiminnallista muutosta    |
 
 ## Scope
 
@@ -55,6 +55,6 @@ Pidä skoopit johdonmukaisina — tarkista aiemmat committit
 Ennen jokaista committia (riippumatta siitä committaatko itse vai Claude
 Code puolestasi) ajetaan automaattisesti lint, tyyppitarkistus, testit,
 secrets-tarkistus, `npm audit` ja kevyt AI-koodikatselmointi. Katso
-[`docs/ai-commit-quality-gate.md`](docs/ai-commit-quality-gate.md)
+[`Dev-Playbook/ai-commit-quality-gate.md`](Dev-Playbook/ai-commit-quality-gate.md)
 miten järjestelmä toimii, miten se otetaan käyttöön uudessa kloonissa, ja
 mitkä ovat sen ohitusmekanismit.
