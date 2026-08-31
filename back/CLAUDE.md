@@ -12,12 +12,14 @@ from here will show `../front/...` paths too. See the root
 the backend.
 
 **`back/README.md` is the canonical architecture document** — request
-lifecycle, all four domain sequence diagrams (login, wine browsing, wine
-search, wine detail, my-wines CRUD), the target controller/service/model
-layering, security posture, known issues, and two ADRs (Drizzle ORM adoption;
-the 5-page catalogue browsing cap). Read it before making non-trivial changes
-instead of re-deriving architecture from source — this file only adds what
-that document doesn't cover (commands, conventions, and things that have
+lifecycle, domain sequence diagrams (login, wine browsing, wine search, wine
+detail, my-wines CRUD) plus a route table for user management/roles (§5.5),
+the target controller/service/model layering, security posture, known
+issues, and four ADRs (Drizzle ORM adoption; the 5-page catalogue browsing
+cap; Photon for reverse geocoding; role-based access control for user
+management). Read it before making non-trivial changes instead of
+re-deriving architecture from source — this file only adds what that
+document doesn't cover (commands, conventions, and things that have
 drifted since it was last updated).
 
 ## Commands
@@ -51,7 +53,10 @@ and to `git add . && git commit && git push` respectively — treat
 ## Environment & local test database
 
 Required vars are documented inline in `env.example` (copy to `.env`); the
-process refuses to boot without `SECRET`. `NODE_ENV=test` reads
+process refuses to boot without `SECRET` or `REFRESH_TOKEN_SECRET`
+(`index.js`) — this bit CI once already: the e2e job's "Start backend" step
+in `.github/workflows/pipeline.yml` must set both, not just `SECRET`.
+`NODE_ENV=test` reads
 `TEST_DATABASE_URL` instead of `DATABASE_URL` (`utils/config.js`).
 
 CI (`.github/workflows/pipeline.yml`) runs tests against a throwaway
